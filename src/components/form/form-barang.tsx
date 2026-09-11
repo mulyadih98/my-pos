@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import QrScanner from "../scanner";
+import { CameraScannerDialog } from "@/components/pos/camera-scanner-dialog";
+import { ScanBarcode } from "lucide-react";
+import { playSuccessChime } from "@/lib/sound";
+import { toast } from "sonner";
 
 type VarianForm = {
   id?: string;
@@ -38,6 +41,7 @@ export function BarangForm({
   const [stok, setStok] = useState(String(defaultValues?.stok ?? ""));
   const [kategoriId, setKategoriId] = useState(defaultValues?.kategoriId ?? "");
   const [supplierId, setSupplierId] = useState(defaultValues?.supplierId ?? "");
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const [varians, setVarians] = useState<VarianForm[]>(
     defaultValues?.varians?.map((v: any) => ({
@@ -120,9 +124,26 @@ export function BarangForm({
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium">Kode Barang</label>
-                <Input value={kode} onChange={(e) => setKode(e.target.value)} />
-                <QrScanner onScan={(value) => setKode(value)} />
+                <label className="text-sm font-medium">Kode Barcode / QR</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={kode}
+                    onChange={(e) => setKode(e.target.value)}
+                    placeholder="Ketik atau scan barcode..."
+                    className="font-mono"
+                  />
+                  {/* Tombol Scanner Kamera: Khusus HP & Tablet (< 1024px) seperti di kasir */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCameraOpen(true)}
+                    className="lg:hidden shrink-0 gap-1.5 h-10 px-3 font-semibold text-xs border-primary text-primary hover:bg-primary/5"
+                    title="Pindai Barcode / QR dengan Kamera HP / Tablet"
+                  >
+                    <ScanBarcode className="w-4 h-4" />
+                    <span className="hidden xs:inline">Scan</span>
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -275,6 +296,18 @@ export function BarangForm({
           {mode === "create" ? "Simpan" : "Update"}
         </Button>
       </div>
+
+      {/* Dialog Scanner Kamera (Sama persis dengan Kasir POS) */}
+      <CameraScannerDialog
+        open={isCameraOpen}
+        onOpenChange={setIsCameraOpen}
+        onScan={(scannedCode) => {
+          const clean = scannedCode.trim();
+          setKode(clean);
+          playSuccessChime();
+          toast.success(`Barcode berhasil terbaca: ${clean}`);
+        }}
+      />
     </>
   );
 }
