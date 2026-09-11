@@ -1,0 +1,236 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Supplier {
+  id      String  @id @default(uuid())
+  nama    String
+  telepon String?
+  alamat  String?
+
+  barang    Barang[]
+  pembelian Pembelian[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Unit {
+  id   String @id @default(uuid())
+  name String @unique
+
+  varians       VarianBarang[]
+  itemPembelian ItemPembelian[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Barang {
+  id         String    @id @default(uuid())
+  kode       String    @unique
+  nama       String
+  stok       Int       @default(0)
+  kategoriId String?
+  kategori   Kategori? @relation(fields: [kategoriId], references: [id])
+  hargaBeli  Int       @default(0)
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  varians        VarianBarang[]
+  transaksiItems ItemTransaksi[]
+  pembelianItems ItemPembelian[]
+  opnameItems    ItemStokOpname[]
+  promosSyarat   Promo[]          @relation("PromoBarangSyarat")
+  promosHadiah   Promo[]          @relation("PromoBarangHadiah")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Kategori {
+  id     String   @id @default(uuid())
+  nama   String   @unique
+  barang Barang[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VarianBarang {
+  id String @id @default(uuid())
+
+  barangId String
+  barang   Barang @relation(fields: [barangId], references: [id])
+
+  hargaRetail Int
+  hargaMember Int
+
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id])
+
+  konversi Int // contoh: 1 dus = 12 pcs
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  transaksiItems ItemTransaksi[]
+}
+
+model Transaksi {
+  id      String          @id @default(uuid())
+  invoice String          @unique
+  total   Int
+  bayar   Int
+  kembali Int
+  items   ItemTransaksi[]
+
+  memberId String?
+  member   Member? @relation(fields: [memberId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Member {
+  id      String  @id @default(uuid())
+  kode    String  @unique
+  nama    String
+  telepon String?
+  alamat  String?
+
+  transaksi Transaksi[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Promo {
+  id   String @id @default(uuid())
+  nama String
+  tipe String @default("BUY_X_GET_Y")
+
+  barangSyaratId String
+  barangSyarat   Barang @relation("PromoBarangSyarat", fields: [barangSyaratId], references: [id])
+  minBeliQty     Int    @default(1)
+
+  barangHadiahId String
+  barangHadiah   Barang @relation("PromoBarangHadiah", fields: [barangHadiahId], references: [id])
+  hadiahQty      Int    @default(1)
+
+  tanggalMulai   DateTime
+  tanggalSelesai DateTime
+  isActive       Boolean  @default(true)
+
+  transaksiItems ItemTransaksi[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ItemTransaksi {
+  id          String    @id @default(uuid())
+  transaksiId String
+  transaksi   Transaksi @relation(fields: [transaksiId], references: [id])
+
+  barangId String
+  barang   Barang @relation(fields: [barangId], references: [id])
+
+  varianId String
+  varian   VarianBarang @relation(fields: [varianId], references: [id])
+
+  qty       Int
+  hargaJual Int
+  subtotal  Int
+
+  isBonus Boolean @default(false)
+  promoId String?
+  promo   Promo?  @relation(fields: [promoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pembelian {
+  id         String          @id @default(uuid())
+  noFaktur   String          @unique
+  supplierId String
+  supplier   Supplier        @relation(fields: [supplierId], references: [id])
+  tanggal    DateTime        @default(now())
+  total      Int
+  catatan    String?
+  items      ItemPembelian[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ItemPembelian {
+  id          String    @id @default(uuid())
+  pembelianId String
+  pembelian   Pembelian @relation(fields: [pembelianId], references: [id], onDelete: Cascade)
+
+  barangId String
+  barang   Barang @relation(fields: [barangId], references: [id])
+
+  unitId String?
+  unit   Unit?   @relation(fields: [unitId], references: [id])
+
+  qty       Int
+  hargaBeli Int
+  subtotal  Int
+  konversi  Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StokOpname {
+  id                String           @id @default(uuid())
+  kodeOpname        String           @unique
+  tanggal           DateTime         @default(now())
+  keterangan        String?
+  totalSelisihNilai Int              @default(0)
+  items             ItemStokOpname[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ItemStokOpname {
+  id           String     @id @default(uuid())
+  stokOpnameId String
+  stokOpname   StokOpname @relation(fields: [stokOpnameId], references: [id], onDelete: Cascade)
+
+  barangId String
+  barang   Barang @relation(fields: [barangId], references: [id])
+
+  stokSistem   Int
+  stokFisik    Int
+  selisih      Int
+  alasan       String // "RUSAK", "KADALUARSA", "HILANG", "SELISIH_HITUNG", "LAINNYA"
+  catatan      String?
+  hargaBeli    Int
+  nilaiSelisih Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pengaturan {
+  id           String   @id @default("default")
+  namaToko     String   @default("MY POS STORE")
+  alamat       String   @default("Jl. Toko Retail Modern No. 1")
+  telepon      String   @default("0812-3456-7890")
+  footerPesan  String   @default("Terima Kasih Atas Kunjungan Anda\nBarang yang sudah dibeli tidak dapat ditukar")
+  ukuranKertas String   @default("58mm")
+  updatedAt    DateTime @updatedAt
+}
