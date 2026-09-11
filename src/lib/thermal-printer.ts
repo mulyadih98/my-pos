@@ -11,9 +11,17 @@ export interface ReceiptItem {
 
 export interface PrintableReceiptData {
   invoice: string;
+  subtotal?: number;
+  diskonPersen?: number;
+  diskonNominal?: number;
   total: number;
+  metodePembayaran?: string; // "TUNAI" | "QRIS" | "TRANSFER" | "DEBIT"
+  referensiPembayaran?: string | null;
   bayar: number;
   kembali: number;
+  catatan?: string | null;
+  status?: string; // "SELESAI" | "BATAL"
+  alasanBatal?: string | null;
   date: Date | string;
   member?: {
     nama: string;
@@ -204,6 +212,12 @@ export function generateThermalReceiptHtml(
             ${settings.telepon ? `<p class="store-info">Telp/WA: ${settings.telepon}</p>` : ""}
           </div>
 
+          ${data.status === "BATAL" ? `
+          <div style="border: 2px solid #000; padding: 4px; margin: 4px 0; text-align: center; font-weight: 900;">
+            *** TRANSAKSI DIBATALKAN ***
+            ${data.alasanBatal ? `<div style="font-size: 9px; font-weight: 600; margin-top: 2px;">Alasan: ${data.alasanBatal}</div>` : ""}
+          </div>` : ""}
+
           <div class="divider">${divider}</div>
 
           <div class="meta-row">
@@ -226,10 +240,29 @@ export function generateThermalReceiptHtml(
           <div class="divider">${divider}</div>
 
           <div class="total-section">
+            ${data.diskonNominal && data.diskonNominal > 0 ? `
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <span>Rp ${(data.subtotal || (data.total + data.diskonNominal)).toLocaleString("id-ID")}</span>
+            </div>
+            <div class="total-row">
+              <span>Diskon${data.diskonPersen ? ` (${data.diskonPersen}%)` : ""}:</span>
+              <span>-Rp ${data.diskonNominal.toLocaleString("id-ID")}</span>
+            </div>` : ""}
             <div class="total-row grand-total">
               <span>TOTAL:</span>
               <span>Rp ${data.total.toLocaleString("id-ID")}</span>
             </div>
+            <div class="total-row">
+              <span>METODE:</span>
+              <span>${data.metodePembayaran || "TUNAI"}</span>
+            </div>
+            ${data.referensiPembayaran ? `
+            <div class="total-row" style="font-size: 9.5px;">
+              <span>No. Ref:</span>
+              <span>${data.referensiPembayaran}</span>
+            </div>` : ""}
+            ${(data.metodePembayaran === "TUNAI" || !data.metodePembayaran) ? `
             <div class="total-row">
               <span>TUNAI:</span>
               <span>Rp ${data.bayar.toLocaleString("id-ID")}</span>
@@ -237,7 +270,11 @@ export function generateThermalReceiptHtml(
             <div class="total-row grand-total">
               <span>KEMBALI:</span>
               <span>Rp ${data.kembali.toLocaleString("id-ID")}</span>
-            </div>
+            </div>` : `
+            <div class="total-row">
+              <span>STATUS:</span>
+              <span>LUNAS</span>
+            </div>`}
           </div>
 
           <div class="divider">${divider}</div>

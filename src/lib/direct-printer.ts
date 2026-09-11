@@ -201,6 +201,18 @@ function buildEscPosReceipt(data: PrintableReceiptData, settings: StoreSettings)
   // Divider
   addText(divider);
 
+  // Void Banner jika transaksi dibatalkan
+  if (data.status === "BATAL") {
+    addBytes(0x1B, 0x61, 0x01); // Center
+    addBytes(0x1B, 0x45, 0x01); // Bold on
+    addText("*** TRANSAKSI DIBATALKAN ***\n");
+    if (data.alasanBatal) {
+      addText(`Alasan: ${data.alasanBatal}\n`);
+    }
+    addBytes(0x1B, 0x45, 0x00); // Bold off
+    addText(divider);
+  }
+
   // 4. Info Invoice & Tanggal (Left Align: ESC a 0)
   addBytes(0x1B, 0x61, 0x00);
   addText(`No : ${data.invoice}\n`);
@@ -231,15 +243,30 @@ function buildEscPosReceipt(data: PrintableReceiptData, settings: StoreSettings)
   addText(divider);
 
   // 6. Totals
+  if (data.diskonNominal && data.diskonNominal > 0) {
+    const subtotalVal = data.subtotal || (data.total + data.diskonNominal);
+    addText(formatTwoColumns("Subtotal:", `Rp ${subtotalVal.toLocaleString("id-ID")}`, maxCols));
+    const diskonLabel = data.diskonPersen ? `Diskon (${data.diskonPersen}%):` : "Diskon:";
+    addText(formatTwoColumns(diskonLabel, `-Rp ${data.diskonNominal.toLocaleString("id-ID")}`, maxCols));
+  }
+
   addBytes(0x1B, 0x45, 0x01); // Bold on
   addText(formatTwoColumns("TOTAL:", `Rp ${data.total.toLocaleString("id-ID")}`, maxCols));
   addBytes(0x1B, 0x45, 0x00); // Bold off
 
-  addText(formatTwoColumns("TUNAI:", `Rp ${data.bayar.toLocaleString("id-ID")}`, maxCols));
+  addText(formatTwoColumns("METODE:", data.metodePembayaran || "TUNAI", maxCols));
+  if (data.referensiPembayaran) {
+    addText(formatTwoColumns("No. Ref:", data.referensiPembayaran, maxCols));
+  }
 
-  addBytes(0x1B, 0x45, 0x01); // Bold on
-  addText(formatTwoColumns("KEMBALI:", `Rp ${data.kembali.toLocaleString("id-ID")}`, maxCols));
-  addBytes(0x1B, 0x45, 0x00); // Bold off
+  if (data.metodePembayaran === "TUNAI" || !data.metodePembayaran) {
+    addText(formatTwoColumns("TUNAI:", `Rp ${data.bayar.toLocaleString("id-ID")}`, maxCols));
+    addBytes(0x1B, 0x45, 0x01); // Bold on
+    addText(formatTwoColumns("KEMBALI:", `Rp ${data.kembali.toLocaleString("id-ID")}`, maxCols));
+    addBytes(0x1B, 0x45, 0x00); // Bold off
+  } else {
+    addText(formatTwoColumns("STATUS:", "LUNAS", maxCols));
+  }
 
   addText(divider);
 

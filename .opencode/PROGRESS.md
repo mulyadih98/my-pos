@@ -39,6 +39,13 @@
 - [x] **Kamera Scanner Barcode & QR (Khusus Mobile/Tablet < 1024px):** Tombol scanner kamera otomatis aktif di HP dan tablet di samping search bar kasir serta form Tambah/Edit Barang (`BarangForm`), menggunakan komponen modal `CameraScannerDialog` terpadu dengan feedback suara.
 - [x] **HTTPS SSL via Cloudflare Tunnel:** Paket `cloudflared` terpasang di sistem, menyediakan tunnel HTTPS resmi (URL trycloudflare) agar kamera HP/tablet dapat diakses tanpa hambatan security context browser.
 - [x] **Laporan Laba Rugi (`/dashboard/laba-rugi`):** Analisis komprehensif omset, HPP/modal, laba kotor, kerugian stok opname, laba bersih, grafik tren harian, rincian laba per produk, ekspor CSV, dan print laporan.
+- [x] **Fitur Prioritas Tinggi POS Selesai & Stabil:**
+  - **Multi Metode Pembayaran:** Pilihan Tunai, QRIS, Transfer Bank, dan Kartu Debit/EDC dengan shortcut keyboard [Alt+1..4] dan input no. referensi pembayaran.
+  - **Tahan Transaksi (Hold & Recall Order):** Parkir antrean belanja sementara ke LocalStorage dengan nama/label antrean dan pemulihan cepat [Alt+H / Alt+R] tanpa kehilangan keranjang.
+  - **Diskon Transaksi (Global Discount):** Potongan transaksi fleksibel dalam format Persen (%) maupun Nominal Rupiah (Rp).
+  - **Filter Tanggal & Status di Riwayat (`/dashboard/riwayat`):** Filter preset Hari Ini, Kemarin, 7 Hari, Bulan Ini, Semua, dan Kustom Tanggal, ditambah filter metode bayar dan status lunas/void, serta kartu metrik omset ringkas.
+  - **Pembatalan / Retur Transaksi (Void / Refund):** Pembatalan transaksi terverifikasi dengan alasan pembatalan dan otomatis mengembalikan stok barang ke toko serta mengecualikan nilai omset dari laporan laba rugi.
+  - **Struk Thermal Multi-Metode & Void:** Cetak struk iframe dan ESC/POS direct Bluetooth otomatis menampilkan metode bayar, diskon, dan tanda void bila dibatalkan.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

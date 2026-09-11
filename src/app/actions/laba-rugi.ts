@@ -72,9 +72,10 @@ export async function getLaporanLabaRugi(filter?: LabaRugiFilter): Promise<LabaR
   const startDateStr = start.toISOString().slice(0, 10);
   const endDateStr = end.toISOString().slice(0, 10);
 
-  // 1. Ambil transaksi beserta item dan relasi barang & variannya
+  // 1. Ambil transaksi aktif (bukan BATAL) beserta item dan relasi barang & variannya
   const transactions = await db.transaksi.findMany({
     where: {
+      status: { not: "BATAL" },
       createdAt: {
         gte: start,
         lte: end,
@@ -186,6 +187,16 @@ export async function getLaporanLabaRugi(filter?: LabaRugiFilter): Promise<LabaR
           labaKotor,
           marginPercent: 0,
         });
+      }
+    }
+
+    // Koreksi diskon tingkat transaksi pada omset harian dan total omset
+    const txDiskon = tx.diskonNominal || 0;
+    if (txDiskon > 0) {
+      totalOmset -= txDiskon;
+      if (dayStat) {
+        dayStat.omset -= txDiskon;
+        dayStat.labaKotor -= txDiskon;
       }
     }
   }

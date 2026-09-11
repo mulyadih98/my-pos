@@ -37,7 +37,21 @@ import {
   ChevronLeft,
   ScanBarcode,
   Camera,
+  PauseCircle,
+  PlayCircle,
+  Percent,
+  QrCode,
+  ArrowLeftRight,
+  Wallet,
+  Clock,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { createTransaksi } from "@/app/actions/transaksi";
 import { toast } from "sonner";
@@ -104,6 +118,18 @@ interface CartItem {
   parentCartItemId?: string;
 }
 
+interface HeldOrder {
+  id: string;
+  label: string;
+  createdAt: string;
+  cart: CartItem[];
+  member: Member | null;
+  priceType: "retail" | "member";
+  discountType: "persen" | "nominal";
+  discountValue: number;
+  catatan: string;
+}
+
 export function POSClient({
   initialProducts,
   initialMembers,
@@ -120,6 +146,14 @@ export function POSClient({
   const [member, setMember] = useState<Member | null>(null);
   const [priceType, setPriceType] = useState<"retail" | "member">("retail");
   const [bayar, setBayar] = useState<number>(0);
+  const [metodePembayaran, setMetodePembayaran] = useState<"TUNAI" | "QRIS" | "TRANSFER" | "DEBIT">("TUNAI");
+  const [referensiPembayaran, setReferensiPembayaran] = useState<string>("");
+  const [discountType, setDiscountType] = useState<"persen" | "nominal">("persen");
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [isDiscountOpen, setIsDiscountOpen] = useState(false);
+  const [catatan, setCatatan] = useState<string>("");
+  const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
+  const [isRecallOpen, setIsRecallOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileTab, setMobileTab] = useState<"catalog" | "cart">("catalog");
 
@@ -136,10 +170,23 @@ export function POSClient({
   const lastQtyInputRef = useRef<HTMLInputElement>(null);
   const dropdownListRef = useRef<HTMLDivElement>(null);
 
-  // Auto-focus barcode input on mount
+  // Auto-focus barcode input on mount & load held orders
   useEffect(() => {
     searchInputRef.current?.focus();
+    try {
+      const saved = localStorage.getItem("mypos_held_orders");
+      if (saved) {
+        setHeldOrders(JSON.parse(saved));
+      }
+    } catch {}
   }, []);
+
+  const saveHeldOrders = (orders: HeldOrder[]) => {
+    setHeldOrders(orders);
+    try {
+      localStorage.setItem("mypos_held_orders", JSON.stringify(orders));
+    } catch {}
+  };
 
   // Auto-scroll selected item into view when navigating with Arrow Up / Down
   useEffect(() => {
@@ -360,9 +407,36 @@ export function POSClient({
     [cart, priceType, initialProducts, initialPromos]
   );
 
-  // Total dan Kembalian
-  const total = useMemo(() => cart.reduce((acc, item) => acc + item.harga * item.qty, 0), [cart]);
-  const kembali = useMemo(() => Math.max(0, bayar - total), [bayar, total]);
+  // Subtotal kotor sebelum diskon transaksi
+  const subtotal = useMemo(() => cart.reduce((acc, item) => acc + item.harga * item.qty, 0), [cart]);
+
+  // Nominal diskon transaksi
+  const diskonNominal = useMemo(() => {
+    if (discountValue <= 0 || subtotal <= 0) return 0;
+    if (discountType === "persen") {
+      const pct = Math.min(100, Math.max(0, discountValue));
+      return Math.round((subtotal * pct) / 100);
+    }
+    return Math.min(subtotal, Math.max(0, discountValue));
+  }, [subtotal, discountType, discountValue]);
+
+  // Persentase diskon
+  const diskonPersen = useMemo(() => {
+    if (discountType === "persen") return Math.min(100, Math.max(0, discountValue));
+    if (subtotal > 0 && diskonNominal > 0) {
+      return Math.round((diskonNominal / subtotal) * 100);
+    }
+    return 0;
+  }, [discountType, discountValue, subtotal, diskonNominal]);
+
+  // Total tagihan bersih setelah diskon
+  const total = useMemo(() => Math.max(0, subtotal - diskonNominal), [subtotal, diskonNominal]);
+
+  // Kembalian
+  const kembali = useMemo(() => {
+    if (metodePembayaran !== "TUNAI") return 0;
+    return Math.max(0, bayar - total);
+  }, [metodePembayaran, bayar, total]);
 
   // Set Uang Pas (Exact Cash)
   const setUangPas = useCallback(() => {
@@ -375,6 +449,78 @@ export function POSClient({
     toast.success(`Uang Pas: Rp ${total.toLocaleString("id-ID")}`);
   }, [total]);
 
+  // Tahan Transaksi (Hold Order)
+  const handleHoldOrder = useCallback(() => {
+    if (cart.length === 0) {
+      toast.error("Keranjang belanja masih kosong!");
+      return;
+    }
+    const totalPcs = cart.reduce((a, c) => a + c.qty, 0);
+    const defaultLabel = `Antrean #${heldOrders.length + 1} (${totalPcs} pcs)`;
+    const label = window.prompt("Nama / Keterangan Antrean:", defaultLabel);
+    if (label === null) return;
+
+    const newOrder: HeldOrder = {
+      id: generateId(),
+      label: label.trim() || defaultLabel,
+      createdAt: new Date().toISOString(),
+      cart,
+      member,
+      priceType,
+      discountType,
+      discountValue,
+      catatan,
+    };
+
+    const updated = [newOrder, ...heldOrders];
+    saveHeldOrders(updated);
+
+    // Reset keranjang aktif
+    setCart([]);
+    setMember(null);
+    setDiscountValue(0);
+    setCatatan("");
+    setBayar(0);
+    setReferensiPembayaran("");
+    toast.success(`Transaksi "${newOrder.label}" berhasil ditahan!`);
+    searchInputRef.current?.focus();
+  }, [cart, heldOrders, member, priceType, discountType, discountValue, catatan]);
+
+  const handleRecallOrder = useCallback(
+    (order: HeldOrder) => {
+      if (cart.length > 0) {
+        if (!confirm("Isi keranjang saat ini akan digantikan oleh antrean ini. Lanjutkan?")) return;
+      }
+
+      setCart(order.cart);
+      setMember(order.member);
+      setPriceType(order.priceType);
+      setDiscountType(order.discountType);
+      setDiscountValue(order.discountValue);
+      setCatatan(order.catatan || "");
+      setBayar(0);
+
+      const filtered = heldOrders.filter((h) => h.id !== order.id);
+      saveHeldOrders(filtered);
+      setIsRecallOpen(false);
+      toast.success(`Antrean "${order.label}" berhasil dibuka kembali!`);
+      searchInputRef.current?.focus();
+    },
+    [cart, heldOrders]
+  );
+
+  const handleDeleteHeldOrder = useCallback(
+    (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (confirm("Hapus antrean tersimpan ini?")) {
+        const filtered = heldOrders.filter((h) => h.id !== id);
+        saveHeldOrders(filtered);
+        toast.info("Antrean dihapus.");
+      }
+    },
+    [heldOrders]
+  );
+
   // Proses Checkout
   const handleCheckout = useCallback(async () => {
     if (cart.length === 0) {
@@ -382,8 +528,12 @@ export function POSClient({
       playErrorSound();
       return;
     }
-    if (bayar < total) {
-      toast.error("Pembayaran kurang dari total tagihan!");
+
+    const effectiveBayar = metodePembayaran === "TUNAI" ? bayar : total;
+    const effectiveKembali = metodePembayaran === "TUNAI" ? kembali : 0;
+
+    if (metodePembayaran === "TUNAI" && effectiveBayar < total) {
+      toast.error("Pembayaran tunai kurang dari total tagihan!");
       playErrorSound();
       bayarInputRef.current?.focus();
       return;
@@ -392,9 +542,15 @@ export function POSClient({
     setIsSubmitting(true);
     try {
       const payload = {
+        subtotal,
+        diskonPersen,
+        diskonNominal,
         total,
-        bayar,
-        kembali,
+        metodePembayaran,
+        referensiPembayaran: referensiPembayaran ? referensiPembayaran.trim() : undefined,
+        bayar: effectiveBayar,
+        kembali: effectiveKembali,
+        catatan: catatan ? catatan.trim() : undefined,
         memberId: member?.id,
         items: cart.map((item) => ({
           barangId: item.barangId,
@@ -414,9 +570,16 @@ export function POSClient({
 
         setReceiptData({
           invoice: result.invoice,
+          subtotal,
+          diskonPersen,
+          diskonNominal,
           total,
-          bayar,
-          kembali,
+          metodePembayaran,
+          referensiPembayaran: referensiPembayaran ? referensiPembayaran.trim() : null,
+          bayar: effectiveBayar,
+          kembali: effectiveKembali,
+          catatan: catatan ? catatan.trim() : null,
+          status: "SELESAI",
           date: new Date(),
           member: member ? { nama: member.nama, kode: member.kode } : null,
           items: cart.map((item) => ({
@@ -432,6 +595,9 @@ export function POSClient({
         setIsReceiptOpen(true);
         setCart([]);
         setBayar(0);
+        setReferensiPembayaran("");
+        setDiscountValue(0);
+        setCatatan("");
       }
     } catch (error: any) {
       playErrorSound();
@@ -439,12 +605,59 @@ export function POSClient({
     } finally {
       setIsSubmitting(false);
     }
-  }, [cart, bayar, total, kembali, member]);
+  }, [
+    cart,
+    subtotal,
+    diskonPersen,
+    diskonNominal,
+    total,
+    metodePembayaran,
+    referensiPembayaran,
+    bayar,
+    kembali,
+    catatan,
+    member,
+  ]);
 
-  // Handle Global Mouseless Hotkeys (F1 - F10, Esc)
+  // Handle Global Mouseless Hotkeys (F1 - F10, Esc, Alt+1..4, Alt+H, Alt+R)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (isReceiptOpen) return;
+
+      if (e.altKey) {
+        if (e.key === "1") {
+          e.preventDefault();
+          setMetodePembayaran("TUNAI");
+          toast.info("Metode Pembayaran: TUNAI");
+          return;
+        } else if (e.key === "2") {
+          e.preventDefault();
+          setMetodePembayaran("QRIS");
+          setBayar(total);
+          toast.info("Metode Pembayaran: QRIS");
+          return;
+        } else if (e.key === "3") {
+          e.preventDefault();
+          setMetodePembayaran("TRANSFER");
+          setBayar(total);
+          toast.info("Metode Pembayaran: TRANSFER");
+          return;
+        } else if (e.key === "4") {
+          e.preventDefault();
+          setMetodePembayaran("DEBIT");
+          setBayar(total);
+          toast.info("Metode Pembayaran: DEBIT");
+          return;
+        } else if (e.key.toLowerCase() === "h") {
+          e.preventDefault();
+          handleHoldOrder();
+          return;
+        } else if (e.key.toLowerCase() === "r") {
+          e.preventDefault();
+          setIsRecallOpen(true);
+          return;
+        }
+      }
 
       switch (e.key) {
         case "F1":
@@ -522,7 +735,7 @@ export function POSClient({
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [isReceiptOpen, isGuideOpen, search, cart, setUangPas, handleCheckout]);
+  }, [isReceiptOpen, isGuideOpen, search, cart, total, setUangPas, handleCheckout, handleHoldOrder]);
 
   // Handle Keyboard Navigasi & Enter pada input pencarian barang
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -957,27 +1170,58 @@ export function POSClient({
               </span>
             </div>
 
-            {cart.length > 0 && (
-              <div className="flex items-center gap-2">
-                <kbd className="text-[10px] text-muted-foreground font-mono">
-                  [F6] Ubah Qty
-                </kbd>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {heldOrders.length > 0 && (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => {
-                    if (confirm("Kosongkan keranjang belanja?")) {
-                      setCart([]);
-                      setBayar(0);
-                    }
-                  }}
-                  className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1"
-                  title="Kosongkan Keranjang [F9]"
+                  onClick={() => setIsRecallOpen(true)}
+                  className="h-7 px-2 text-xs font-bold text-amber-600 border-amber-400 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 gap-1"
+                  title="Buka Antrean Tersimpan [Alt+R]"
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Batal [F9]
+                  <PauseCircle className="w-3.5 h-3.5" />
+                  <span>Antrean</span>
+                  <span className="bg-amber-600 text-white dark:bg-amber-500 dark:text-zinc-900 rounded-full px-1.5 py-0.2 text-[10px]">
+                    {heldOrders.length}
+                  </span>
                 </Button>
-              </div>
-            )}
+              )}
+
+              {cart.length > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleHoldOrder}
+                    className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 gap-1 border-amber-300"
+                    title="Tahan transaksi ini sementara agar bisa melayani antrean lain [Alt+H]"
+                  >
+                    <PauseCircle className="w-3.5 h-3.5" /> Tahan
+                  </Button>
+
+                  <kbd className="hidden sm:inline-block text-[10px] text-muted-foreground font-mono">
+                    [F6] Qty
+                  </kbd>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm("Kosongkan keranjang belanja?")) {
+                        setCart([]);
+                        setBayar(0);
+                        setDiscountValue(0);
+                        setCatatan("");
+                      }
+                    }}
+                    className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1"
+                    title="Kosongkan Keranjang [F9]"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Batal
+                  </Button>
+                </>
+              )}
+            </div>
           </CardHeader>
 
           <CardContent className="flex-1 overflow-auto p-0">
@@ -1279,75 +1523,254 @@ export function POSClient({
               F7: Bayar | F8: Pas
             </kbd>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="flex justify-between items-end border-b pb-4">
-              <span className="text-muted-foreground font-semibold">Total Tagihan</span>
-              <span className="text-3xl font-black text-primary tracking-tight">
+          <CardContent className="space-y-4">
+            {/* Subtotal & Diskon */}
+            <div className="space-y-1.5 pb-2.5 border-b">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground font-semibold">Subtotal</span>
+                <span className="font-bold font-mono">Rp {subtotal.toLocaleString("id-ID")}</span>
+              </div>
+
+              {/* Input / Toggle Diskon */}
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground font-medium flex items-center gap-1">
+                    <Percent className="w-3.5 h-3.5 text-amber-500" /> Diskon
+                  </span>
+                  {diskonNominal > 0 && (
+                    <span className="bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.2 rounded">
+                      {discountType === "persen" ? `${discountValue}%` : "Potongan"}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {isDiscountOpen ? (
+                    <div className="flex items-center gap-1 animate-in fade-in">
+                      <div className="flex bg-muted p-0.5 rounded border">
+                        <button
+                          type="button"
+                          onClick={() => setDiscountType("persen")}
+                          className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                            discountType === "persen"
+                              ? "bg-background text-foreground shadow-xs"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          %
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDiscountType("nominal")}
+                          className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                            discountType === "nominal"
+                              ? "bg-background text-foreground shadow-xs"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          Rp
+                        </button>
+                      </div>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={discountValue || ""}
+                        onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value)))}
+                        placeholder={discountType === "persen" ? "10" : "5000"}
+                        className="h-7 w-20 text-xs text-right font-mono"
+                        autoFocus
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setDiscountValue(0);
+                          setIsDiscountOpen(false);
+                        }}
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        title="Hapus Diskon"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsDiscountOpen(true)}
+                      className="h-6 px-1.5 text-[11px] font-semibold text-primary hover:underline gap-1"
+                    >
+                      {diskonNominal > 0
+                        ? `-Rp ${diskonNominal.toLocaleString("id-ID")}`
+                        : "+ Tambah Diskon"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Total Tagihan */}
+            <div className="flex justify-between items-end border-b pb-3">
+              <div>
+                <span className="text-muted-foreground font-bold text-xs uppercase tracking-wider block">
+                  Total Tagihan
+                </span>
+                {diskonNominal > 0 && (
+                  <span className="text-[10.5px] text-red-500 font-semibold">
+                    Hemat Rp {diskonNominal.toLocaleString("id-ID")}
+                  </span>
+                )}
+              </div>
+              <span className="text-3xl font-black text-primary tracking-tight font-mono">
                 Rp {total.toLocaleString("id-ID")}
               </span>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Bayar Uang Tunai (Cash)
-                </label>
-                <span className="text-[11px] text-muted-foreground">Tekan [F7]</span>
-              </div>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">
-                  Rp
+            {/* Selector Metode Pembayaran */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                <span>Metode Pembayaran</span>
+                <span className="text-[10px] text-muted-foreground normal-case font-normal">
+                  [Alt+1..4]
                 </span>
-                <Input
-                  ref={bayarInputRef}
-                  type="number"
-                  value={bayar || ""}
-                  onChange={(e) => setBayar(Number(e.target.value))}
-                  onKeyDown={(e) => e.key === "Enter" && handleCheckout()}
-                  className="pl-10 h-14 text-2xl font-bold font-mono bg-background"
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Shortcut Uang Pas & Pecahan Responsif */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={setUangPas}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 shadow-xs"
-                  title="Bayar Uang Pas [F8]"
-                >
-                  <Coins className="w-3.5 h-3.5 mr-1" /> Uang Pas
-                </Button>
-                {[20000, 50000, 100000].map((amt) => (
-                  <Button
-                    key={amt}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setBayar(amt)}
-                    className="text-xs font-semibold h-10 hover:bg-accent"
-                  >
-                    +{amt.toLocaleString("id-ID")}
-                  </Button>
-                ))}
+              </label>
+              <div className="grid grid-cols-4 gap-1.5 bg-muted/70 p-1 rounded-xl border">
+                {(["TUNAI", "QRIS", "TRANSFER", "DEBIT"] as const).map((method) => {
+                  const isActive = metodePembayaran === method;
+                  return (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => {
+                        setMetodePembayaran(method);
+                        if (method !== "TUNAI") {
+                          setBayar(total);
+                        }
+                      }}
+                      className={`py-1.5 px-1 text-center rounded-lg font-bold text-[11px] transition-all flex flex-col items-center justify-center gap-1 ${
+                        isActive
+                          ? "bg-background text-primary shadow-xs border border-primary/40"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                      }`}
+                    >
+                      {method === "TUNAI" && <Wallet className="w-3.5 h-3.5" />}
+                      {method === "QRIS" && <QrCode className="w-3.5 h-3.5" />}
+                      {method === "TRANSFER" && <ArrowLeftRight className="w-3.5 h-3.5" />}
+                      {method === "DEBIT" && <CreditCard className="w-3.5 h-3.5" />}
+                      <span>{method}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="flex justify-between items-center bg-background p-4 rounded-xl border shadow-xs">
-              <span className="text-muted-foreground font-medium">Uang Kembalian</span>
-              <span className="text-2xl font-black text-emerald-600 font-mono">
-                Rp {kembali.toLocaleString("id-ID")}
-              </span>
+            {/* Input Pembayaran Sesuai Metode */}
+            {metodePembayaran === "TUNAI" ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Bayar Uang Tunai (Cash)
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">Tekan [F7]</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">
+                    Rp
+                  </span>
+                  <Input
+                    ref={bayarInputRef}
+                    type="number"
+                    value={bayar || ""}
+                    onChange={(e) => setBayar(Number(e.target.value))}
+                    onKeyDown={(e) => e.key === "Enter" && handleCheckout()}
+                    className="pl-10 h-12 text-2xl font-bold font-mono bg-background"
+                    placeholder="0"
+                  />
+                </div>
+
+                {/* Shortcut Uang Pas & Pecahan Responsif */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-1.5">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={setUangPas}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-xs"
+                    title="Bayar Uang Pas [F8]"
+                  >
+                    <Coins className="w-3.5 h-3.5 mr-1" /> Uang Pas
+                  </Button>
+                  {[20000, 50000, 100000].map((amt) => (
+                    <Button
+                      key={amt}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBayar(amt)}
+                      className="text-xs font-semibold h-9 hover:bg-accent"
+                    >
+                      +{amt.toLocaleString("id-ID")}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="flex justify-between items-center bg-background p-3 rounded-xl border shadow-xs mt-2">
+                  <span className="text-muted-foreground font-medium text-xs">Uang Kembalian</span>
+                  <span className="text-xl font-black text-emerald-600 font-mono">
+                    Rp {kembali.toLocaleString("id-ID")}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5 bg-background p-3 rounded-xl border">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-muted-foreground">Total Tagihan:</span>
+                  <span className="font-black text-sm text-foreground font-mono">
+                    Rp {total.toLocaleString("id-ID")}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10.5px] font-semibold text-muted-foreground">
+                    No. Referensi / Trace ID / RRN (Opsional):
+                  </label>
+                  <Input
+                    value={referensiPembayaran}
+                    onChange={(e) => setReferensiPembayaran(e.target.value)}
+                    placeholder={
+                      metodePembayaran === "QRIS"
+                        ? "Contoh: RRN 891238492"
+                        : metodePembayaran === "TRANSFER"
+                        ? "Contoh: BCA 1029 - Anto"
+                        : "Contoh: Trace 40291"
+                    }
+                    className="h-8 text-xs font-mono"
+                    onKeyDown={(e) => e.key === "Enter" && handleCheckout()}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Catatan Transaksi (Opsional) */}
+            <div>
+              <Input
+                value={catatan}
+                onChange={(e) => setCatatan(e.target.value)}
+                placeholder="Catatan transaksi (opsional)..."
+                className="h-8 text-xs bg-background/60"
+              />
             </div>
 
             <Button
-              className="w-full h-16 text-lg font-bold gap-2 shadow-md"
-              disabled={cart.length === 0 || bayar < total || isSubmitting}
+              className="w-full h-14 text-base font-bold gap-2 shadow-md"
+              disabled={
+                cart.length === 0 ||
+                (metodePembayaran === "TUNAI" && bayar < total) ||
+                isSubmitting
+              }
               onClick={handleCheckout}
             >
-              <CreditCard className="w-6 h-6" />
+              <CreditCard className="w-5 h-5" />
               {isSubmitting ? "Memproses..." : "PROSES BAYAR [F10]"}
             </Button>
           </CardContent>
@@ -1375,6 +1798,79 @@ export function POSClient({
           </Button>
         </div>
       )}
+
+      {/* Dialog Antrean Transaksi Tersimpan (Recall Order) */}
+      <Dialog open={isRecallOpen} onOpenChange={setIsRecallOpen}>
+        <DialogContent className="max-w-lg p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PauseCircle className="w-5 h-5 text-amber-500" /> Antrean Transaksi Tersimpan ({heldOrders.length})
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Daftar transaksi yang ditahan sementara. Klik tombol <strong>Buka</strong> untuk memulihkan transaksi ke kasir.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2.5 max-h-[60vh] overflow-y-auto py-2">
+            {heldOrders.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground text-sm">
+                Tidak ada transaksi yang sedang ditahan.
+              </div>
+            ) : (
+              heldOrders.map((order) => {
+                const itemCount = order.cart.reduce((a, c) => a + c.qty, 0);
+                const orderTotal = order.cart.reduce((a, c) => a + c.harga * c.qty, 0);
+                const timeStr = new Date(order.createdAt).toLocaleTimeString("id-ID", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+
+                return (
+                  <div
+                    key={order.id}
+                    className="p-3 bg-muted/40 hover:bg-muted/70 border rounded-xl flex items-center justify-between gap-3 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm truncate">{order.label}</p>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
+                          <Clock className="w-3 h-3" /> {timeStr}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {itemCount} pcs ({order.cart.length} item) •{" "}
+                        {order.member ? `Member: ${order.member.nama}` : "Pelanggan Umum"}
+                      </p>
+                      <p className="font-black text-primary text-xs font-mono mt-1">
+                        Rp {orderTotal.toLocaleString("id-ID")}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => handleRecallOrder(order)}
+                        className="h-8 px-3 text-xs font-bold gap-1"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" /> Buka
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => handleDeleteHeldOrder(order.id, e)}
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        title="Hapus Antrean"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Cetak Struk Thermal */}
       <ReceiptModal

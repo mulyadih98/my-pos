@@ -28,6 +28,9 @@ export function KeyboardGuideDialog({ open, onOpenChange }: KeyboardGuideDialogP
     { key: "F8", desc: "Isi otomatis Uang Pas (Exact Cash)" },
     { key: "F9", desc: "Kosongkan seluruh isi Keranjang Belanja" },
     { key: "F10", desc: "Eksekusi Proses Bayar (Checkout)" },
+    { key: "Alt + 1..4", desc: "Pilih Metode Bayar: 1:Tunai, 2:QRIS, 3:Transfer, 4:Debit" },
+    { key: "Alt + H", desc: "Tahan Transaksi / Parkir Belanjaan Sementara (Hold Order)" },
+    { key: "Alt + R", desc: "Buka Antrean Belanja Tersimpan (Recall Order)" },
     { key: "Esc", desc: "Tutup dialog / modal / bersihkan input pencarian" },
   ];
 

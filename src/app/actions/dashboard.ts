@@ -21,6 +21,7 @@ export async function getDashboardStats() {
   // 1. Transactions Today
   const todayTransactions = await db.transaksi.findMany({
     where: {
+      status: { not: "BATAL" },
       createdAt: {
         gte: startOfToday,
         lte: endOfToday,
@@ -37,6 +38,7 @@ export async function getDashboardStats() {
   // 2. Transactions Yesterday (for growth calculation)
   const yesterdayTransactions = await db.transaksi.findMany({
     where: {
+      status: { not: "BATAL" },
       createdAt: {
         gte: startOfYesterday,
         lte: endOfYesterday,
@@ -51,6 +53,7 @@ export async function getDashboardStats() {
   // 3. Transactions Month
   const monthTransactions = await db.transaksi.findMany({
     where: {
+      status: { not: "BATAL" },
       createdAt: {
         gte: startOfMonth,
       },
@@ -100,8 +103,11 @@ export async function getDashboardStats() {
     },
   });
 
-  // 7. Recent 5 Transactions
+  // 7. Recent 5 Transactions (excluding cancelled)
   const recentTransactions = await db.transaksi.findMany({
+    where: {
+      status: { not: "BATAL" },
+    },
     take: 5,
     orderBy: {
       createdAt: "desc",
@@ -116,9 +122,14 @@ export async function getDashboardStats() {
     },
   });
 
-  // 8. Top Selling Products (Aggregated by ItemTransaksi quantity)
+  // 8. Top Selling Products (Aggregated by ItemTransaksi quantity for non-cancelled transactions)
   const topItemsRaw = await db.itemTransaksi.groupBy({
     by: ["barangId"],
+    where: {
+      transaksi: {
+        status: { not: "BATAL" },
+      },
+    },
     _sum: {
       qty: true,
       subtotal: true,
@@ -173,6 +184,7 @@ export async function getSalesChartData(days: number = 90) {
 
   const transactions = await db.transaksi.findMany({
     where: {
+      status: { not: "BATAL" },
       createdAt: {
         gte: startDate,
       },

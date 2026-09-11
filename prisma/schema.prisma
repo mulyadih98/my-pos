@@ -86,12 +86,21 @@ model VarianBarang {
 }
 
 model Transaksi {
-  id      String          @id @default(uuid())
-  invoice String          @unique
-  total   Int
-  bayar   Int
-  kembali Int
-  items   ItemTransaksi[]
+  id                  String          @id @default(uuid())
+  invoice             String          @unique
+  subtotal            Int             @default(0)
+  diskonPersen        Int             @default(0)
+  diskonNominal       Int             @default(0)
+  total               Int
+  metodePembayaran    String          @default("TUNAI")
+  referensiPembayaran String?
+  bayar               Int
+  kembali             Int
+  catatan             String?
+  status              String          @default("SELESAI")
+  alasanBatal         String?
+  batalAt             DateTime?
+  items               ItemTransaksi[]
 
   memberId String?
   member   Member? @relation(fields: [memberId], references: [id])
