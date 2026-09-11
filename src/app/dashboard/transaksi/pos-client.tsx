@@ -30,7 +30,6 @@ import {
   UserCheck,
   XCircle,
   Gift,
-  Sparkles,
   Keyboard,
   Coins,
   Settings,
@@ -1351,30 +1350,6 @@ export function POSClient({
               <CreditCard className="w-6 h-6" />
               {isSubmitting ? "Memproses..." : "PROSES BAYAR [F10]"}
             </Button>
-          </CardContent>
-        </Card>
-
-        {/* Informasi Promo & Shortcut Keyboard */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-500" /> Tips Perkalian & Shortcut
-              </span>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => setIsGuideOpen(true)}
-                className="h-auto p-0 text-xs text-primary"
-              >
-                Lihat Semua [F1]
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-[11px] space-y-1 text-muted-foreground">
-            <p>• Ketik <strong>10*nama_barang</strong> (misal <code>10*kopi</code>) lalu tekan <strong>Enter</strong>.</p>
-            <p>• Gunakan panah <strong>[↑] [↓]</strong> untuk memilih hasil pencarian.</p>
-            <p>• Tekan <strong>[F6]</strong> untuk mengubah Qty barang terakhir.</p>
           </CardContent>
         </Card>
       </div>
