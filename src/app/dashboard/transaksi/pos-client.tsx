@@ -36,6 +36,8 @@ import {
   Settings,
   ArrowRight,
   ChevronLeft,
+  ScanBarcode,
+  Camera,
 } from "lucide-react";
 import Link from "next/link";
 import { createTransaksi } from "@/app/actions/transaksi";
@@ -43,6 +45,7 @@ import { toast } from "sonner";
 import { playScanBeep, playSuccessChime, playErrorSound } from "@/lib/sound";
 import { ReceiptModal, ReceiptData } from "@/components/receipt-modal";
 import { KeyboardGuideDialog } from "@/components/keyboard-guide-dialog";
+import { CameraScannerDialog } from "@/components/pos/camera-scanner-dialog";
 import { generateId } from "@/lib/utils";
 
 interface Varian {
@@ -123,6 +126,7 @@ export function POSClient({
 
   // Dialog States
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
@@ -565,6 +569,42 @@ export function POSClient({
     }
   };
 
+  // Handler saat kamera HP / Tablet berhasil membaca Barcode atau QR Code
+  const handleCameraScan = (scannedCode: string) => {
+    const cleanCode = scannedCode.trim();
+    if (!cleanCode) return false;
+
+    // 1. Cari exact match kode barcode produk
+    const exactMatch = initialProducts.find(
+      (p) => p.kode.toLowerCase() === cleanCode.toLowerCase()
+    );
+
+    if (exactMatch) {
+      addToCart(exactMatch, 0, false, 1);
+      playSuccessChime();
+      toast.success(`+ 1x ${exactMatch.nama} masuk keranjang`);
+      return true;
+    }
+
+    // 2. Jika kode tidak cocok persis, cari yang mengandung kode
+    const partialMatch = initialProducts.find(
+      (p) =>
+        p.kode.toLowerCase().includes(cleanCode.toLowerCase()) ||
+        p.nama.toLowerCase().includes(cleanCode.toLowerCase())
+    );
+
+    if (partialMatch) {
+      addToCart(partialMatch, 0, false, 1);
+      playSuccessChime();
+      toast.success(`+ 1x ${partialMatch.nama} masuk keranjang`);
+      return true;
+    }
+
+    playErrorSound();
+    toast.error(`Barcode "${cleanCode}" tidak terdaftar di sistem!`);
+    return false;
+  };
+
   // Tambah bonus B1G1 manual untuk baris item tertentu
   const addManualBonusRow = (item: CartItem) => {
     const product = initialProducts.find((p) => p.id === item.barangId);
@@ -802,98 +842,106 @@ export function POSClient({
 
           <CardContent className="overflow-visible space-y-2.5">
             {/* Input Search Barcode dengan Dukungan Multiplier (Contoh: 10*kopi) */}
-            <div className="relative">
-              <Input
-                ref={searchInputRef}
-                placeholder="Scan barcode, ketik nama, atau 10*nama_barang... [F2]"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                className="pl-10 h-12 text-base font-medium shadow-inner"
-                autoFocus
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Scan barcode, ketik nama, atau 10*nama_barang... [F2]"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  className="pl-10 h-12 text-base font-medium shadow-inner rounded-xl"
+                  autoFocus
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
 
-              {/* Indicator Multiplier Badge jika kasir mengetik misal: 10* */}
-              {parsedSearch.multiplier > 1 && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary text-primary-foreground font-black text-xs px-2 py-1 rounded-md shadow-xs animate-in fade-in zoom-in">
-                  Qty: {parsedSearch.multiplier}x
-                </div>
-              )}
+                {/* Indicator Multiplier Badge jika kasir mengetik misal: 10* */}
+                {parsedSearch.multiplier > 1 && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary text-primary-foreground font-black text-xs px-2 py-1 rounded-md shadow-xs animate-in fade-in zoom-in">
+                    Qty: {parsedSearch.multiplier}x
+                  </div>
+                )}
 
-              {/* Dropdown Hasil Pencarian dengan Navigasi Panah Keyboard (Up/Down) */}
-              {filteredProducts.length > 0 && (
-                <div
-                  ref={dropdownListRef}
-                  className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-2xl z-50 divide-y max-h-[360px] overflow-y-auto overscroll-contain"
-                >
-                  {filteredProducts.map((p, idx) => {
-                    const activePromo = getActivePromoForProduct(p.id);
-                    const isSelected = idx === selectedIndex;
+                {/* Dropdown Hasil Pencarian dengan Navigasi Panah Keyboard (Up/Down) */}
+                {filteredProducts.length > 0 && (
+                  <div
+                    ref={dropdownListRef}
+                    className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-2xl z-50 divide-y max-h-[360px] overflow-y-auto overscroll-contain"
+                  >
+                    {filteredProducts.map((p, idx) => {
+                      const activePromo = getActivePromoForProduct(p.id);
+                      const isSelected = idx === selectedIndex;
 
-                    return (
-                      <div
-                        key={p.id}
-                        data-item-index={idx}
-                        onMouseEnter={() => setSelectedIndex(idx)}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          addToCart(p, 0, false, parsedSearch.multiplier);
-                        }}
-                        className={`p-3 flex items-center justify-between transition-colors cursor-pointer select-none ${
-                          isSelected
-                            ? "bg-primary/10 border-l-4 border-l-primary"
-                            : "hover:bg-accent"
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-sm">{p.nama}</p>
-                            {activePromo && (
-                              <span className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/50 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <Gift className="w-3 h-3" /> PROMO B1G1 / HADIAH
-                              </span>
-                            )}
+                      return (
+                        <div
+                          key={p.id}
+                          data-item-index={idx}
+                          onMouseEnter={() => setSelectedIndex(idx)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            addToCart(p, 0, false, parsedSearch.multiplier);
+                          }}
+                          className={`p-3 flex items-center justify-between transition-colors cursor-pointer select-none ${
+                            isSelected
+                              ? "bg-primary/10 border-l-4 border-l-primary"
+                              : "hover:bg-accent"
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-sm">{p.nama}</p>
+                              {activePromo && (
+                                <span className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/50 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Gift className="w-3 h-3" /> PROMO B1G1 / HADIAH
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Kode: {p.kode} | Stok: {p.stok}
+                            </p>
                           </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            Kode: {p.kode} | Stok: {p.stok}
-                          </p>
+                          <div className="flex gap-1 items-center">
+                            {p.varians.map((v: any, vIdx: number) => {
+                              const currentPrice =
+                                priceType === "retail" ? v.hargaRetail : v.hargaMember;
+                              return (
+                                <Button
+                                  key={v.id}
+                                  variant="outline"
+                                  size="sm"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    addToCart(p, vIdx, false, parsedSearch.multiplier);
+                                  }}
+                                  className="h-8 text-xs px-2.5 flex flex-col items-end py-1 font-semibold"
+                                >
+                                  <span>{v.unit.name}</span>
+                                  <span className="text-[10px] text-primary font-mono">
+                                    Rp {currentPrice.toLocaleString("id-ID")}
+                                  </span>
+                                </Button>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div className="flex gap-1 items-center">
-                          {p.varians.map((v: any, vIdx: number) => {
-                            const currentPrice =
-                              priceType === "retail" ? v.hargaRetail : v.hargaMember;
-                            return (
-                              <Button
-                                key={v.id}
-                                variant="secondary"
-                                size="sm"
-                                onMouseDown={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  addToCart(p, vIdx, false, parsedSearch.multiplier);
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addToCart(p, vIdx, false, parsedSearch.multiplier);
-                                }}
-                                className="h-8 px-2 flex flex-col items-center py-1 border hover:bg-primary/10 transition-colors"
-                              >
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-tight">
-                                  {v.unit.name}
-                                </span>
-                                <span className="text-xs font-semibold leading-tight">
-                                  Rp {currentPrice.toLocaleString("id-ID")}
-                                </span>
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Tombol Kamera Scan Barcode & QR: KHUSUS HP & TABLET (< 1024px) */}
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => setIsCameraOpen(true)}
+                className="lg:hidden h-12 px-3.5 sm:px-4 shrink-0 gap-1.5 font-bold shadow-xs bg-primary text-primary-foreground rounded-xl"
+                title="Pindai Barcode / QR dengan Kamera HP / Tablet"
+              >
+                <ScanBarcode className="w-5 h-5" />
+                <span className="hidden xs:inline text-xs">Scan</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -1362,6 +1410,13 @@ export function POSClient({
           setIsReceiptOpen(false);
           searchInputRef.current?.focus();
         }}
+      />
+
+      {/* Dialog Scanner Kamera Barcode & QR (Khusus HP & Tablet) */}
+      <CameraScannerDialog
+        open={isCameraOpen}
+        onOpenChange={setIsCameraOpen}
+        onScan={handleCameraScan}
       />
 
       {/* Dialog Panduan Shortcut Keyboard */}
