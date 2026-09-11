@@ -27,6 +27,7 @@ import {
   PackagePlus,
   ClipboardCheck,
   Settings,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -51,6 +52,11 @@ const data = {
       title: "Riwayat Transaksi",
       url: "/dashboard/riwayat",
       icon: <Receipt />,
+    },
+    {
+      title: "Laba Rugi",
+      url: "/dashboard/laba-rugi",
+      icon: <TrendingUp />,
     },
     {
       title: "Promo",

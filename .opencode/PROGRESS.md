@@ -35,6 +35,7 @@
   - DataTable responsif dengan horizontal scroll (`overflow-x-auto`) dan toolbar/pagination adaptif.
   - Master Barang kolom adaptif.
 - [x] **Pencarian Kasir:** Filter kategori di bawah search barang telah dihapus sesuai permintaan.
+- [x] **Laporan Laba Rugi (`/dashboard/laba-rugi`):** Analisis komprehensif omset, HPP/modal, laba kotor, kerugian stok opname, laba bersih, grafik tren harian, rincian laba per produk, ekspor CSV, dan print laporan.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---
