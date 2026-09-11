@@ -1,6 +1,6 @@
 ---
 name: git-feature-workflow
-description: Gunakan SELALU setiap kali menambah fitur baru, mengubah kode, atau memperbaiki bug pada proyek ini. Menginstruksikan alur kerja wajib 5 langkah: 1. Create branch, 2. Build fitur/fixing, 3. Commit, 4. Merge ke main, 5. Push ke GitHub.
+description: Gunakan SELALU setiap kali menambah fitur baru, mengubah kode, atau memperbaiki bug pada proyek ini. Menginstruksikan alur kerja wajib 5 langkah: 1. Create branch, 2. Build fitur/fixing, 3. Commit, 4. Merge ke main, 5. Push ke GitHub, serta pemulihan konteks via PROGRESS.md.
 ---
 
 # Git Feature & Fixing Workflow SOP
@@ -25,6 +25,7 @@ Setiap kali pengguna meminta untuk **menambahkan fitur baru** atau **memperbaiki
 
 ### 2. Implementasi & Verifikasi Build (Build & Self-Verification)
 - Buat atau modifikasi kode sesuai kebutuhan task.
+- Jika tugas memiliki > 2 langkah, catat checkpoint di `.opencode/PROGRESS.md` agar konteks tidak hilang jika sesi terputus.
 - **Wajib Verifikasi:** Jalankan pengujian build Next.js sebelum commit:
   ```bash
   npm run build
@@ -63,7 +64,8 @@ Setiap kali pengguna meminta untuk **menambahkan fitur baru** atau **memperbaiki
 
 ---
 
-## Aturan Tambahan:
-- **Dilarang langsung commit di `main`** untuk perubahan fitur atau perbaikan kode. Selalu gunakan alur branch ➔ merge.
-- Jangan melakukan force push (`git push -f`).
-- Pastikan berkas rahasia (`.env`) dan berkas log runtime (`dev.log`) tidak pernah ter-commit.
+## Pemulihan Sesi (Context Recovery Protocol)
+Jika sesi terputus di tengah pengerjaan (karena limit kuota atau token):
+1. Jalankan `git status` dan `git log -3 --oneline`.
+2. Baca berkas `.opencode/PROGRESS.md` untuk mengetahui checkpoint pekerjaan terakhir.
+3. Langsung lanjutkan langkah berikutnya tanpa membuang token untuk re-analisis dari awal.
