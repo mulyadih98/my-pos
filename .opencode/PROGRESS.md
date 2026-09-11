@@ -37,6 +37,7 @@
   - Master Barang kolom adaptif.
 - [x] **Pencarian Kasir:** Filter kategori di bawah search barang telah dihapus sesuai permintaan.
 - [x] **Kamera Scanner Barcode & QR (Khusus Mobile/Tablet < 1024px):** Tombol scanner kamera otomatis aktif di HP dan tablet di samping search bar, mendukung pembacaan 1D barcode & 2D QR dengan mode sekali scan atau multi-scan beruntun.
+- [x] **HTTPS SSL via Cloudflare Tunnel:** Paket `cloudflared` terpasang di sistem, menyediakan tunnel HTTPS resmi (URL trycloudflare) agar kamera HP/tablet dapat diakses tanpa hambatan security context browser.
 - [x] **Laporan Laba Rugi (`/dashboard/laba-rugi`):** Analisis komprehensif omset, HPP/modal, laba kotor, kerugian stok opname, laba bersih, grafik tren harian, rincian laba per produk, ekspor CSV, dan print laporan.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
