@@ -114,7 +114,6 @@ export function POSClient({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [memberSearch, setMemberSearch] = useState("");
   const [member, setMember] = useState<Member | null>(null);
   const [priceType, setPriceType] = useState<"retail" | "member">("retail");
@@ -173,17 +172,6 @@ export function POSClient({
     );
   }, [priceType, initialProducts]);
 
-  // Extract unique categories for quick tabs
-  const categories = useMemo(() => {
-    const map = new Map<string, string>();
-    initialProducts.forEach((p) => {
-      if (p.kategori) {
-        map.set(p.kategori.id, p.kategori.nama);
-      }
-    });
-    return Array.from(map.entries()).map(([id, nama]) => ({ id, nama }));
-  }, [initialProducts]);
-
   // Parse multiplier from search (misal "10*kopi" atau "5*899...")
   const parsedSearch = useMemo(() => {
     const raw = search.trim();
@@ -213,23 +201,17 @@ export function POSClient({
       .slice(0, 5);
   }, [memberSearch, initialMembers]);
 
-  // Filter produk pencarian (Search text + Category filter)
+  // Filter produk pencarian (Search text)
   const filteredProducts = useMemo(() => {
-    let result = initialProducts;
-
-    if (selectedCategory !== "ALL") {
-      result = result.filter((p) => p.kategori?.id === selectedCategory);
-    }
-
     const q = parsedSearch.query.toLowerCase();
     if (!q) {
-      return selectedCategory !== "ALL" ? result.slice(0, 15) : [];
+      return [];
     }
 
-    return result
+    return initialProducts
       .filter((p) => p.nama.toLowerCase().includes(q) || p.kode.toLowerCase().includes(q))
       .slice(0, 30);
-  }, [parsedSearch.query, selectedCategory, initialProducts]);
+  }, [parsedSearch.query, initialProducts]);
 
   // Reset selectedIndex when search results change
   useEffect(() => {
@@ -913,31 +895,6 @@ export function POSClient({
                 </div>
               )}
             </div>
-
-            {/* Quick Category Filter Tabs */}
-            {categories.length > 0 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-                <Button
-                  variant={selectedCategory === "ALL" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory("ALL")}
-                  className="h-7 text-xs px-2.5 shrink-0 rounded-full font-medium"
-                >
-                  Semua Produk
-                </Button>
-                {categories.map((c) => (
-                  <Button
-                    key={c.id}
-                    variant={selectedCategory === c.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(c.id)}
-                    className="h-7 text-xs px-2.5 shrink-0 rounded-full font-medium"
-                  >
-                    {c.nama}
-                  </Button>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
 
