@@ -153,6 +153,7 @@ export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSe
       if (key === "uiFontWeight") document.documentElement.setAttribute("data-ui-font-weight", value);
       if (key === "uiFontFamily") document.documentElement.setAttribute("data-ui-font-family", value);
     }
+    toast.success("Tampilan layar kasir diperbarui!");
   };
 
   if (!isClientLoaded) return null;
@@ -363,8 +364,8 @@ export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSe
                 {[
                   { id: "sm", label: "Kecil", size: "14px", desc: "Ringkas (Laptop)" },
                   { id: "md", label: "Standar", size: "16px", desc: "Bawaan sistem" },
-                  { id: "lg", label: "Besar", size: "17.5px", desc: "Ideal Tablet / Kasir" },
-                  { id: "xl", label: "Ekstra Besar", size: "19px", desc: "Teks Ekstra Jelas" },
+                  { id: "lg", label: "Besar", size: "18.5px", desc: "Ideal Tablet / Kasir" },
+                  { id: "xl", label: "Ekstra Besar", size: "21px", desc: "Teks Ekstra Jelas" },
                 ].map((item) => {
                   const isSelected = (settings.uiFontSize || "md") === item.id;
                   return (

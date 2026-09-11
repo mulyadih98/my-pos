@@ -131,37 +131,72 @@
 
 /* UI Custom Font Display (Per-Device Settings) */
 html[data-ui-font-size="sm"] {
-  font-size: 14px;
+  font-size: 14px !important;
 }
 html[data-ui-font-size="md"] {
-  font-size: 16px;
+  font-size: 16px !important;
 }
 html[data-ui-font-size="lg"] {
-  font-size: 17.5px;
+  font-size: 18.5px !important;
 }
 html[data-ui-font-size="xl"] {
-  font-size: 19px;
+  font-size: 21px !important;
 }
 
+html[data-ui-font-weight="normal"] {
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}
 html[data-ui-font-weight="normal"] body {
   font-weight: 400;
 }
+
+html[data-ui-font-weight="medium"] {
+  --font-weight-normal: 500;
+  --font-weight-medium: 600;
+  --font-weight-semibold: 700;
+  --font-weight-bold: 800;
+}
 html[data-ui-font-weight="medium"] body {
   font-weight: 500;
+}
+
+html[data-ui-font-weight="bold"] {
+  --font-weight-normal: 600;
+  --font-weight-medium: 700;
+  --font-weight-semibold: 800;
+  --font-weight-bold: 900;
 }
 html[data-ui-font-weight="bold"] body {
   font-weight: 600;
 }
 
-html[data-ui-font-family="sans"] body {
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+html[data-ui-font-family="sans"] {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
-html[data-ui-font-family="system"] body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+html[data-ui-font-family="system"] {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
-html[data-ui-font-family="mono"] body {
-  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
+html[data-ui-font-family="mono"] {
+  --font-sans: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-html[data-ui-font-family="rounded"] body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI Rounded', 'Quicksand', 'Nunito', sans-serif;
+html[data-ui-font-family="rounded"] {
+  --font-sans: 'Quicksand', 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html[data-ui-font-family] body,
+html[data-ui-font-family] button,
+html[data-ui-font-family] input,
+html[data-ui-font-family] select,
+html[data-ui-font-family] textarea {
+  font-family: var(--font-sans) !important;
+}
+
+html[data-ui-font-family] code,
+html[data-ui-font-family] kbd,
+html[data-ui-font-family] pre,
+html[data-ui-font-family] .font-mono {
+  font-family: var(--font-geist-mono), monospace !important;
 }

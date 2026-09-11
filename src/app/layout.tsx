@@ -29,7 +29,29 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var s = localStorage.getItem("pos_store_settings");
+                if (s) {
+                  var p = JSON.parse(s);
+                  if (p.uiFontSize) document.documentElement.setAttribute("data-ui-font-size", p.uiFontSize);
+                  if (p.uiFontWeight) document.documentElement.setAttribute("data-ui-font-weight", p.uiFontWeight);
+                  if (p.uiFontFamily) document.documentElement.setAttribute("data-ui-font-family", p.uiFontFamily);
+                } else {
+                  document.documentElement.setAttribute("data-ui-font-size", "md");
+                  document.documentElement.setAttribute("data-ui-font-weight", "normal");
+                  document.documentElement.setAttribute("data-ui-font-family", "sans");
+                }
+              } catch(e) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-screen flex flex-col overflow-x-hidden">
         <UiFontProvider />
         <TooltipProvider>
