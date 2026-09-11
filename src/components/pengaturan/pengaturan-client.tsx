@@ -36,6 +36,7 @@ import {
   Smartphone,
   Server,
   FileText,
+  Type,
 } from "lucide-react";
 
 export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSettings }) {
@@ -135,7 +136,23 @@ export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSe
   const handleResetLocal = () => {
     clearLocalStoreSettings();
     setSettings(defaultSettings);
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-ui-font-size", defaultSettings.uiFontSize || "md");
+      document.documentElement.setAttribute("data-ui-font-weight", defaultSettings.uiFontWeight || "normal");
+      document.documentElement.setAttribute("data-ui-font-family", defaultSettings.uiFontFamily || "sans");
+    }
     toast.info("Pengaturan perangkat telah di-reset ke data default toko.");
+  };
+
+  const updateUiFont = (key: "uiFontSize" | "uiFontWeight" | "uiFontFamily", value: string) => {
+    const updated = { ...settings, [key]: value };
+    setSettings(updated);
+    saveLocalStoreSettings(updated);
+    if (typeof document !== "undefined") {
+      if (key === "uiFontSize") document.documentElement.setAttribute("data-ui-font-size", value);
+      if (key === "uiFontWeight") document.documentElement.setAttribute("data-ui-font-weight", value);
+      if (key === "uiFontFamily") document.documentElement.setAttribute("data-ui-font-family", value);
+    }
   };
 
   if (!isClientLoaded) return null;
@@ -321,7 +338,164 @@ export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSe
           </CardContent>
         </Card>
 
-        {/* Card 3: Aksi Penyimpanan */}
+        {/* Card 3: Tipografi & Tampilan Layar Kasir (UI) */}
+        <Card>
+          <CardHeader className="border-b pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Type className="w-5 h-5 text-primary" /> Tipografi & Tampilan Layar Kasir (UI)
+              </CardTitle>
+              <Badge variant="secondary" className="text-[10px]">
+                Khusus Perangkat Ini
+              </Badge>
+            </div>
+            <CardDescription>
+              Sesuaikan ukuran teks, ketebalan, dan jenis huruf agar layar kasir nyaman dibaca dari jarak meja kasir/tablet.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5 pt-4">
+            {/* 1. Ukuran Font Layar */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Ukuran Teks Antarmuka
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { id: "sm", label: "Kecil", size: "14px", desc: "Ringkas (Laptop)" },
+                  { id: "md", label: "Standar", size: "16px", desc: "Bawaan sistem" },
+                  { id: "lg", label: "Besar", size: "17.5px", desc: "Ideal Tablet / Kasir" },
+                  { id: "xl", label: "Ekstra Besar", size: "19px", desc: "Teks Ekstra Jelas" },
+                ].map((item) => {
+                  const isSelected = (settings.uiFontSize || "md") === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => updateUiFont("uiFontSize", item.id)}
+                      className={`p-2.5 rounded-lg border text-left transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs">{item.label}</span>
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Ketebalan Font Layar */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Ketebalan Huruf (Font Weight)
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "normal", label: "Normal", weight: "400", desc: "Ketebalan standar" },
+                  { id: "medium", label: "Sedang", weight: "500", desc: "Lebih mudah dibaca" },
+                  { id: "bold", label: "Tebal", weight: "600", desc: "Kontras tinggi" },
+                ].map((item) => {
+                  const isSelected = (settings.uiFontWeight || "normal") === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => updateUiFont("uiFontWeight", item.id)}
+                      className={`p-2.5 rounded-lg border text-left transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs" style={{ fontWeight: item.weight }}>
+                          {item.label}
+                        </span>
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Jenis Huruf (Font Family) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Gaya Tipografi (Font Family)
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { id: "sans", label: "Modern Sans", desc: "Geist / Inter (Default)" },
+                  { id: "system", label: "Sistem OS", desc: "Segoe UI / Roboto" },
+                  { id: "mono", label: "Monospace", desc: "Tampilan POS Digital" },
+                  { id: "rounded", label: "Clean Rounded", desc: "Tepi huruf membulat" },
+                ].map((item) => {
+                  const isSelected = (settings.uiFontFamily || "sans") === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => updateUiFont("uiFontFamily", item.id)}
+                      className={`p-2.5 rounded-lg border text-left transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs">{item.label}</span>
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Live Interactive UI Simulation Box */}
+            <div className="p-3.5 rounded-xl bg-muted/40 border space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Simulasi Tampilan Kasir Langsung:
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                  Terapkan Otomatis (Live)
+                </span>
+              </div>
+
+              <div className="p-3 bg-background rounded-lg border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-foreground">Indomie Mi Goreng Spesial 85g</p>
+                    <Badge variant="secondary" className="text-[10px]">1 Dus (40 Pcs)</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Barcode: <span className="font-mono">8992388111223</span> &bull; Stok: 120 pcs
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <span className="font-black text-primary text-base font-mono">
+                    Rp 135.000
+                  </span>
+                  <Button size="sm" className="h-8 font-bold gap-1 text-xs">
+                    + Tambah
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Aksi Penyimpanan */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button
             type="button"

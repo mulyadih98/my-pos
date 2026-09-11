@@ -25,6 +25,7 @@
   - Kertas 58mm / 80mm.
   - Penyimpanan 2 lapis: LocalStorage per-device + Database MariaDB default.
   - Tombol Tes Print & Cek Bluetooth.
+  - Tipografi & Tampilan Layar Kasir UI: Ukuran font (sm/md/lg/xl), ketebalan (normal/medium/bold), dan jenis huruf (sans/system/mono/rounded) per-device via LocalStorage.
 - [x] **Modal Struk Kasir Bersih:**
   - Hanya 2 tombol utama: `[Cetak Struk]` (Enter) dan `[Selesai Tanpa Cetak]` (Esc).
   - Tombol cetak ulang di Riwayat Transaksi (`/dashboard/riwayat`).
