@@ -105,6 +105,10 @@
   - **100% Mouseless & Ergonomis:** Pilihan satuan via shortcut `[Alt+1..9]` atau panah `[←/→]`, input qty auto-focus & auto-select (cukup ketik angka lalu tekan `Enter`), tombol step `↑/↓` dan `+/-`, quick chips `[+1] [+2] [+5] [+10] [Maks]`.
   - **Validasi Stok Real-Time & Subtotal Live:** Perhitungan subtotal dan konversi satuan fisik otomatis memeriksa stok sisa di database dan barang yang sudah ada di keranjang.
   - **Opsi Pengaturan:** Pengaturan saklar `confirmItemQtyDialog` di `/dashboard/pengaturan` untuk mengaktifkan/menonaktifkan dialog sesuai preferensi operasional toko.
+- [x] **Antarmuka Tabbed Settings Bersih & Rapi (`/dashboard/pengaturan`):**
+  - **Organisasi 4 Tab Terstruktur:** Mengubah layout panjang scroll vertikal menjadi 4 tab tematik (`Identitas Toko`, `Printer & Struk`, `Alur Kasir (POS)`, `Tampilan Layar (UI)`).
+  - **Pratinjau Kontekstual Dinamis:** Tab Toko & Printer menyertakan Live Preview Struk Thermal, Tab Kasir menampilkan simulasi modal kuantitas & panduan shortcut, dan Tab Tampilan menampilkan simulasi kartu produk real-time.
+  - **Aksi Terpusat:** Tombol simpan per perangkat, default database, dan reset ditempatkan pada bar bawah terpadu yang selalu mudah dijangkau.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---
