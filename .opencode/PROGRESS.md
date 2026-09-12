@@ -81,10 +81,10 @@
   - **Layout Modal Footer:** Perbaikan posisi tombol aksi Import dan Batal pada modal impor barang agar tidak terpotong/tenggelam pada layar dengan container footer `shrink-0` dan `min-h-0` yang presisi.
 - [x] **Dukungan Progressive Web App (PWA) & Branding Aplikasi:**
   - **Identitas & Judul Resmi:** Mengganti judul default *"Create Next App"* menjadi *"My POS - Aplikasi Kasir & Manajemen Toko"* dengan title template dinamis `%s | My POS`, deskripsi sistem kasir modern, dan theme-color Dark Charcoal (`#09090b`).
-  - **Logo Storefront "MY POS - TOKO SERBA ADA":** Desain logo etalase toko ritel berdasarkan gambar referensi (kanopi bergelombang, pintu dengan keranjang belanja, etalase jendela, teks MY POS dan pita TOKO SERBA ADA dalam warna Sage Green `#6e9360`).
+  - **Logo Storefront "MY POS - TOKO SERBA ADA":** Desain logo etalase toko ritel kustom & orisinal (kanopi geometris modern 3-panel, pintu kaca lengkung dengan tas belanja luxury, jendela etalase dengan terminal kasir POS digital, tipografi tebal MY POS, dan kapsul pill badge TOKO SERBA ADA dalam warna Primary Dark Charcoal `#09090b`).
   - **App Icons Resolusi Tinggi:** Generate ikon PNG profesional di `public/icons/` (192x192, 512x512, maskable 512x512 untuk Android, dan apple-touch-icon 180x180 untuk iOS).
   - **Web App Manifest & Service Worker:** Konfigurasi `src/app/manifest.ts`, `public/manifest.json`, dan `public/sw.js` (mode standalone, offline caching) memenuhi standar W3C & Google Chrome PWA.
-  - **Integrasi Komponen Brand:** Komponen `AppLogo` terintegrasi pada Header Sidebar dan Halaman Login, serta penyelarasan tema warna netral/charcoal pada tombol PWA dan dialog impor barang.
+  - **Integrasi Komponen Brand:** Komponen `AppLogo` vektor adaptif (otomatis menyesuaikan tema terang/gelap) terintegrasi pada Header Sidebar dan Halaman Login, serta tombol PWA dan dialog impor barang.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---
