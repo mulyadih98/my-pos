@@ -73,6 +73,11 @@
 - [x] **Fix Penanganan Hapus Barang & Relasi Promo:**
   - Pembersihan relasi promo otomatis (`onDelete: Cascade` pada model Promo) dan pengecekan spesifik relasi transaksi/pembelian/opname sebelum menghapus barang agar tidak memicu pelanggaran Foreign Key.
   - Penanganan error aman dengan notifikasi toast (`sonner`) pada `DeleteBarangDialog` untuk mencegah crash Unhandled Server Error Boundary.
+- [x] **Import Barang Masal via Excel / CSV & Supplier Opsional:**
+  - **Supplier Fleksibel:** Kolom `supplierId` pada model `Barang` dibuat nullable (`String?`), memungkinkan produk disimpan tanpa supplier (tampil strip `-`).
+  - **Download Template Spreadsheet:** Unduh template Excel (`.xlsx`) dan CSV (`.csv`) dengan contoh baris dan lebar kolom rapi langsung dari modal.
+  - **Pratinjau Live & Validasi:** Parsing file `.xlsx`/`.csv` via library `xlsx`, validasi nama & harga, penanganan auto-barcode unik jika kosong, dan opsi duplikat (update stok/harga vs lewati).
+  - **Batch Chunking Server Action:** Fungsi `importBarangBatch` memproses 20 barang/batch dengan auto-register Kategori & Satuan baru tanpa membebani connection pooler Supabase.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

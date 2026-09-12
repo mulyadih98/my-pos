@@ -43,8 +43,8 @@ model Barang {
   kategori   Kategori? @relation(fields: [kategoriId], references: [id])
   hargaBeli  Int       @default(0)
 
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
 
   varians        VarianBarang[]
   transaksiItems ItemTransaksi[]

@@ -89,7 +89,7 @@ export function BarangForm({
       stok: Number(stok),
       hargaBeli: Number(hargaBeli),
       kategoriId,
-      supplierId,
+      supplierId: supplierId || null,
       varians: varians.map((v) => ({
         id: v.id,
         hargaRetail: Number(v.hargaRetail),
@@ -102,7 +102,6 @@ export function BarangForm({
 
   const isValid =
     nama &&
-    supplierId &&
     varians.length > 0 &&
     varians.every((v) => v.unitId && v.hargaRetail);
 
@@ -187,13 +186,13 @@ export function BarangForm({
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium">Supplier</label>
+                <label className="text-sm font-medium">Supplier (Opsional)</label>
                 <select
                   className="w-full border rounded-md p-2"
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value)}
                 >
-                  <option value="">Pilih Supplier</option>
+                  <option value="">-- Tanpa Supplier --</option>
                   {suppliers.map((s: any) => (
                     <option key={s.id} value={s.id}>
                       {s.nama}
