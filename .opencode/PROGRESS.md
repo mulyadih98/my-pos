@@ -67,6 +67,9 @@
   - **Provider & Adapter Modern:** Migrasi skema Prisma ke `postgresql` dengan `@prisma/adapter-pg` dan connection pooler.
   - **Dukungan Pooler IPv4:** Konfigurasi koneksi pooler Supabase (`aws-1-ap-southeast-2.pooler.supabase.com`) port 6543 (transaction mode via pgbouncer) dan port 5432 (session mode DDL/seeding) untuk mengatasi kendala IPv6 direct unreachable pada server lokal.
   - **Seeding & Sinkronisasi:** 18 tabel model dan data master default (user owner/kasir, satuan, kategori, supplier, member, barang) terverifikasi aktif di Supabase.
+- [x] **Fix Vercel Deployment & NPM Registry Lockfile:**
+  - Pembersihan URL mirror internal Tencent Cloud (`mirrors.tencentyun.com`) pada `package-lock.json` menjadi URL resmi publik `registry.npmjs.org`.
+  - Penambahan file `.npmrc` dengan `registry=https://registry.npmjs.org/` agar instalasi dependensi di cloud CI/CD seperti Vercel berjalan lancar tanpa error ENETUNREACH/ENOTFOUND.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---
