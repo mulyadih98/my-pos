@@ -85,6 +85,9 @@
   - **App Icons Resolusi Tinggi:** Generate ikon PNG profesional di `public/icons/` (192x192, 512x512, maskable 512x512 untuk Android, dan apple-touch-icon 180x180 untuk iOS).
   - **Web App Manifest & Service Worker:** Konfigurasi `src/app/manifest.ts`, `public/manifest.json`, dan `public/sw.js` (mode standalone, offline caching) memenuhi standar W3C & Google Chrome PWA.
   - **Integrasi Komponen Brand:** Komponen `AppLogo` vektor adaptif (otomatis menyesuaikan tema terang/gelap) terintegrasi pada Header Sidebar dan Halaman Login, serta tombol PWA dan dialog impor barang.
+- [x] **Optimasi Layout Kasir Layar Laptop 1360x768 (Tombol Bayar Selalu Terlihat):**
+  - **Zero Scroll di 1360x768:** Mengompresi ruang vertikal pada `TransaksiPage` dan menyatukan kartu Member menjadi bar pencarian kompak sehingga seluruh panel pembayaran muat dalam 1 layar utuh tanpa scroll.
+  - **Sticky Bottom Action Footer:** Total Tagihan dan tombol `[PROSES BAYAR [F10]]` diposisikan sebagai pinned footer (`shrink-0` di dasar kartu) sehingga tidak akan pernah terpotong atau tenggelam di layar mana pun, bahkan jika browser di-zoom hingga 125%-150%.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

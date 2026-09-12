@@ -1078,7 +1078,7 @@ export function POSClient({
   };
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 h-full p-1 pb-24 lg:pb-1 relative">
+    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-3.5 h-full p-0.5 pb-24 lg:pb-0 relative min-h-0">
       {/* Mobile & Tablet Tab Switcher (< 1024px) */}
       <div className="flex lg:hidden w-full bg-muted/80 p-1 rounded-xl gap-1 shrink-0 sticky top-0 z-30 shadow-xs backdrop-blur">
         <button
@@ -1115,7 +1115,7 @@ export function POSClient({
 
       {/* Left Side: Product Search & Selection (Scrollable) */}
       <div
-        className={`lg:col-span-7 flex flex-col gap-4 overflow-y-auto lg:h-full pr-1 custom-scrollbar ${
+        className={`lg:col-span-7 flex flex-col gap-2.5 overflow-y-auto lg:h-full min-h-0 pr-1 custom-scrollbar ${
           mobileTab === "cart" ? "hidden lg:flex" : "flex"
         }`}
       >
@@ -1546,12 +1546,12 @@ export function POSClient({
 
       {/* Right Side: Member & Payment Summary */}
       <div
-        className={`lg:col-span-5 flex flex-col gap-4 lg:h-full overflow-y-auto pr-1 ${
+        className={`lg:col-span-5 flex flex-col gap-2.5 lg:h-full min-h-0 ${
           mobileTab === "catalog" ? "hidden lg:flex" : "flex"
         }`}
       >
         {/* On mobile / tablet < lg, show quick navigation back to catalog */}
-        <div className="lg:hidden flex items-center justify-between pb-1">
+        <div className="lg:hidden flex items-center justify-between pb-1 shrink-0">
           <Button
             type="button"
             variant="ghost"
@@ -1565,124 +1565,124 @@ export function POSClient({
             {cart.length} Baris Produk
           </span>
         </div>
-        {/* Member Section */}
-        <Card className={`${member ? "border-primary bg-primary/5" : ""} overflow-visible z-20 shadow-sm`}>
-          <CardHeader className="pb-2.5 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <User className="w-4 h-4 text-primary" /> Pelanggan / Member
-            </CardTitle>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted text-muted-foreground rounded border">
-              F3
-            </kbd>
-          </CardHeader>
-          <CardContent className="overflow-visible">
-            {!member ? (
-              <div className="relative">
-                <div className="flex gap-2">
+
+        {/* Member Section (Compact & Sleek) */}
+        <div className={`p-2.5 rounded-xl border bg-card shadow-2xs shrink-0 transition-all ${member ? "border-primary/40 bg-primary/5" : ""}`}>
+          {!member ? (
+            <div className="relative">
+              <div className="flex gap-1.5 items-center">
+                <div className="relative flex-1">
+                  <User className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     ref={memberInputRef}
-                    placeholder="Nama, Kode, atau Telp... [F3]"
+                    placeholder="Pelanggan / Member [F3]..."
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && findMember()}
-                    className="h-10 text-xs"
+                    className="h-8 text-xs pl-8 bg-background"
                   />
-                  <Button variant="outline" size="icon" onClick={findMember} className="shrink-0 h-10 w-10">
-                    <Search className="w-4 h-4" />
-                  </Button>
                 </div>
+                <Button variant="outline" size="sm" onClick={findMember} className="h-8 px-2.5 text-xs shrink-0 gap-1">
+                  <Search className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Cari</span>
+                </Button>
+              </div>
 
-                {filteredMembers.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-2xl z-50 divide-y overflow-hidden">
-                    {filteredMembers.map((m) => (
-                      <div
-                        key={m.id}
-                        className="p-3 hover:bg-accent cursor-pointer transition-colors"
-                        onClick={() => {
-                          setMember(m);
-                          setPriceType("member");
-                          setMemberSearch("");
-                          setKasbonNama(m.nama);
-                          setKasbonTelepon(m.telepon || "");
-                          checkKasbonForCustomer(m.nama);
-                          playScanBeep();
-                          toast.success(`Member terpilih: ${m.nama}`);
-                          searchInputRef.current?.focus();
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="w-4 h-4 text-primary" />
-                          <div>
-                            <p className="font-semibold text-sm leading-tight">{m.nama}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {m.kode} | {m.telepon || "-"}
-                            </p>
-                          </div>
+              {filteredMembers.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-2xl z-50 divide-y overflow-hidden max-h-48 overflow-y-auto">
+                  {filteredMembers.map((m) => (
+                    <div
+                      key={m.id}
+                      className="p-2.5 hover:bg-accent cursor-pointer transition-colors"
+                      onClick={() => {
+                        setMember(m);
+                        setPriceType("member");
+                        setMemberSearch("");
+                        setKasbonNama(m.nama);
+                        setKasbonTelepon(m.telepon || "");
+                        checkKasbonForCustomer(m.nama);
+                        playScanBeep();
+                        toast.success(`Member terpilih: ${m.nama}`);
+                        searchInputRef.current?.focus();
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs leading-tight truncate">{m.nama}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {m.kode} | {m.telepon || "-"}
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between bg-background p-3 rounded-md border border-primary/50 shadow-sm animate-in fade-in zoom-in duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 p-2 rounded-full">
-                      <UserCheck className="w-5 h-5 text-primary" />
                     </div>
-                    <div>
-                      <p className="font-bold text-sm leading-tight">{member.nama}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{member.kode}</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={removeMember}
-                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                    title="Hapus Member"
-                  >
-                    <XCircle className="w-5 h-5" />
-                  </Button>
+                  ))}
                 </div>
-
-                {customerKasbon && customerKasbon.saldoHutang > 0 && (
-                  <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between text-xs">
-                    <span className="text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Saldo Kasbon Aktif:
-                    </span>
-                    <span className="font-mono font-black text-amber-600">
-                      Rp {customerKasbon.saldoHutang.toLocaleString("id-ID")}
-                    </span>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between bg-background p-2 rounded-lg border border-primary/30 shadow-2xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="bg-primary/10 p-1.5 rounded-full shrink-0">
+                    <UserCheck className="w-3.5 h-3.5 text-primary" />
                   </div>
-                )}
+                  <div className="min-w-0">
+                    <p className="font-bold text-xs leading-none truncate">{member.nama}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{member.kode}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={removeMember}
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                  title="Hapus Member"
+                >
+                  <XCircle className="w-4 h-4" />
+                </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Ringkasan Pembayaran */}
-        <Card className="bg-primary/5 border-primary/20 shadow-sm">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Ringkasan Pembayaran</CardTitle>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-background text-primary rounded border font-bold">
+              {customerKasbon && customerKasbon.saldoHutang > 0 && (
+                <div className="p-1.5 px-2.5 bg-amber-500/10 border border-amber-500/30 rounded-md flex items-center justify-between text-xs">
+                  <span className="text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-1 text-[11px]">
+                    <AlertTriangle className="w-3 h-3 text-amber-500" /> Saldo Kasbon:
+                  </span>
+                  <span className="font-mono font-black text-amber-600 text-xs">
+                    Rp {customerKasbon.saldoHutang.toLocaleString("id-ID")}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Unified Payment Card with Scrollable Body & Pinned Sticky Footer */}
+        <Card className="flex-1 min-h-0 flex flex-col overflow-hidden shadow-sm border bg-card">
+          {/* Header */}
+          <div className="px-3.5 py-2 border-b shrink-0 flex items-center justify-between bg-muted/20">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Ringkasan Pembayaran
+            </span>
+            <kbd className="px-1.5 py-0.5 text-[9.5px] font-mono bg-background text-foreground rounded border font-semibold">
               F7: Bayar | F8: Pas
             </kbd>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Subtotal & Diskon */}
-            <div className="space-y-1.5 pb-2.5 border-b">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground font-semibold">Subtotal</span>
+          </div>
+
+          {/* Middle Scrollable Section (Fits within 1360x768 without scroll, but scrolls if zoomed!) */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-3.5 space-y-2.5 custom-scrollbar">
+            {/* Subtotal & Diskon Row */}
+            <div className="space-y-1 pb-2 border-b text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground font-semibold">Subtotal:</span>
                 <span className="font-bold font-mono">Rp {subtotal.toLocaleString("id-ID")}</span>
               </div>
 
               {/* Input / Toggle Diskon */}
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span className="text-muted-foreground font-medium flex items-center gap-1">
-                    <Percent className="w-3.5 h-3.5 text-amber-500" /> Diskon
+                    <Percent className="w-3.5 h-3.5 text-amber-500" /> Diskon:
                   </span>
                   {diskonNominal > 0 && (
                     <span className="bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.2 rounded">
@@ -1724,7 +1724,7 @@ export function POSClient({
                         value={discountValue || ""}
                         onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value)))}
                         placeholder={discountType === "persen" ? "10" : "5000"}
-                        className="h-7 w-20 text-xs text-right font-mono"
+                        className="h-6.5 w-18 text-xs text-right font-mono"
                         autoFocus
                       />
                       <Button
@@ -1735,7 +1735,7 @@ export function POSClient({
                           setDiscountValue(0);
                           setIsDiscountOpen(false);
                         }}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                         title="Hapus Diskon"
                       >
                         <XCircle className="w-3.5 h-3.5" />
@@ -1747,7 +1747,7 @@ export function POSClient({
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsDiscountOpen(true)}
-                      className="h-6 px-1.5 text-[11px] font-semibold text-primary hover:underline gap-1"
+                      className="h-5.5 px-1.5 text-[11px] font-semibold text-primary hover:underline gap-1"
                     >
                       {diskonNominal > 0
                         ? `-Rp ${diskonNominal.toLocaleString("id-ID")}`
@@ -1758,27 +1758,10 @@ export function POSClient({
               </div>
             </div>
 
-            {/* Total Tagihan */}
-            <div className="flex justify-between items-end border-b pb-3">
-              <div>
-                <span className="text-muted-foreground font-bold text-xs uppercase tracking-wider block">
-                  Total Tagihan
-                </span>
-                {diskonNominal > 0 && (
-                  <span className="text-[10.5px] text-red-500 font-semibold">
-                    Hemat Rp {diskonNominal.toLocaleString("id-ID")}
-                  </span>
-                )}
-              </div>
-              <span className="text-3xl font-black text-primary tracking-tight font-mono">
-                Rp {total.toLocaleString("id-ID")}
-              </span>
-            </div>
-
             {/* Selector Metode Pembayaran */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                <span>Metode Pembayaran</span>
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                <span>Metode Bayar</span>
                 <span className="text-[10px] text-muted-foreground normal-case font-normal">
                   [Alt+1..5]
                 </span>
@@ -1925,13 +1908,13 @@ export function POSClient({
             ) : metodePembayaran === "TUNAI" ? (
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     Bayar Uang Tunai (Cash)
                   </label>
-                  <span className="text-[11px] text-muted-foreground">Tekan [F7]</span>
+                  <span className="text-[10px] text-muted-foreground">Tekan [F7]</span>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-xs text-muted-foreground">
                     Rp
                   </span>
                   <Input
@@ -1940,21 +1923,21 @@ export function POSClient({
                     value={bayar || ""}
                     onChange={(e) => setBayar(Number(e.target.value))}
                     onKeyDown={(e) => e.key === "Enter" && handleCheckout()}
-                    className="pl-10 h-12 text-2xl font-bold font-mono bg-background"
+                    className="pl-8 h-10 text-xl font-bold font-mono bg-background"
                     placeholder="0"
                   />
                 </div>
 
                 {/* Shortcut Uang Pas & Pecahan Responsif */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-1.5">
+                <div className="grid grid-cols-4 gap-1 mt-1">
                   <Button
                     variant="default"
                     size="sm"
                     onClick={setUangPas}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-xs"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] h-8 px-1 shadow-2xs"
                     title="Bayar Uang Pas [F8]"
                   >
-                    <Coins className="w-3.5 h-3.5 mr-1" /> Uang Pas
+                    <Coins className="w-3.5 h-3.5 mr-1 shrink-0" /> Pas [F8]
                   </Button>
                   {[20000, 50000, 100000].map((amt) => (
                     <Button
@@ -1963,9 +1946,9 @@ export function POSClient({
                       variant="outline"
                       size="sm"
                       onClick={() => setBayar(amt)}
-                      className="text-xs font-semibold h-9 hover:bg-accent"
+                      className="text-[11px] font-semibold h-8 px-1 hover:bg-accent"
                     >
-                      +{amt.toLocaleString("id-ID")}
+                      +{(amt / 1000).toLocaleString("id-ID")}k
                     </Button>
                   ))}
                 </div>
@@ -2055,11 +2038,11 @@ export function POSClient({
                   </div>
                 )}
 
-                <div className="flex justify-between items-center bg-background p-3 rounded-xl border shadow-xs mt-2">
+                <div className="flex justify-between items-center bg-background px-3 py-1.5 rounded-lg border shadow-2xs mt-1.5">
                   <span className="text-muted-foreground font-medium text-xs">
                     {isPotongKembalian ? "Kembalian Bersih" : "Uang Kembalian"}
                   </span>
-                  <span className="text-xl font-black text-emerald-600 font-mono">
+                  <span className="text-lg font-black text-emerald-600 font-mono">
                     Rp {kembali.toLocaleString("id-ID")}
                   </span>
                 </div>
@@ -2099,12 +2082,31 @@ export function POSClient({
                 value={catatan}
                 onChange={(e) => setCatatan(e.target.value)}
                 placeholder="Catatan transaksi (opsional)..."
-                className="h-8 text-xs bg-background/60"
+                className="h-7 text-xs bg-background/60"
               />
+            </div>
+          </div>
+
+          {/* Bottom Pinned Footer: Total Tagihan & PROSES BAYAR */}
+          <div className="px-3.5 py-2.5 border-t shrink-0 bg-card/95 backdrop-blur z-20 space-y-2">
+            <div className="flex justify-between items-baseline px-0.5">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block leading-none">
+                  Total Tagihan:
+                </span>
+                {diskonNominal > 0 && (
+                  <span className="text-[10px] text-red-500 font-semibold block mt-0.5">
+                    Hemat Rp {diskonNominal.toLocaleString("id-ID")}
+                  </span>
+                )}
+              </div>
+              <span className="text-2xl sm:text-3xl font-black text-primary font-mono tracking-tight">
+                Rp {total.toLocaleString("id-ID")}
+              </span>
             </div>
 
             <Button
-              className="w-full h-14 text-base font-bold gap-2 shadow-md"
+              className="w-full h-11 sm:h-12 text-sm sm:text-base font-bold gap-2 shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={
                 cart.length === 0 ||
                 (metodePembayaran === "TUNAI" && bayar < total) ||
@@ -2113,14 +2115,14 @@ export function POSClient({
               }
               onClick={handleCheckout}
             >
-              <CreditCard className="w-5 h-5" />
+              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
               {isSubmitting
                 ? "Memproses..."
                 : metodePembayaran === "HUTANG"
                 ? "SIMPAN TRANSAKSI KASBON [F10]"
                 : "PROSES BAYAR [F10]"}
             </Button>
-          </CardContent>
+          </div>
         </Card>
       </div>
 

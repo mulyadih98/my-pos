@@ -11,11 +11,11 @@ export default async function TransaksiPage() {
   const activePromos = await getActivePromos();
 
   return (
-    <div className="flex flex-col gap-2 sm:gap-4 p-2 sm:p-4 lg:h-[calc(100vh-5rem)] lg:overflow-hidden min-h-screen lg:min-h-0">
-      <div className="hidden sm:flex items-center justify-between shrink-0">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Transaksi Kasir</h1>
+    <div className="flex flex-col gap-1.5 sm:gap-2 p-1.5 sm:p-2.5 lg:h-[calc(100vh-3.75rem)] lg:overflow-hidden min-h-screen lg:min-h-0">
+      <div className="hidden sm:flex lg:hidden items-center justify-between shrink-0">
+        <h1 className="text-lg sm:text-xl font-bold tracking-tight">Transaksi Kasir</h1>
       </div>
-      <div className="flex-1 lg:overflow-hidden">
+      <div className="flex-1 min-h-0 lg:overflow-hidden">
         <POSClient 
           initialProducts={products} 
           initialMembers={members} 
