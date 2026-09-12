@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { UserSession } from "@/lib/auth";
+import { InstallPwaButton } from "@/components/pwa/install-pwa-button";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentUser?: UserSession | null;
@@ -171,7 +172,8 @@ export function AppSidebar({ currentUser, ...props }: AppSidebarProps) {
       <SidebarContent>
         <NavMain items={visibleNavItems} />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="gap-2 p-2">
+        <InstallPwaButton />
         <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
