@@ -272,39 +272,41 @@ export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSe
       {/* TABS CONTAINER */}
       <Tabs defaultValue="toko" value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
         {/* Navigation Tabs Header */}
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto p-1.5 bg-muted/60 rounded-2xl border gap-1 shadow-2xs">
-          <TabsTrigger
-            value="toko"
-            className="gap-2 py-2.5 px-3 font-bold text-xs rounded-xl data-active:bg-background data-active:text-primary data-active:shadow-sm transition-all"
-          >
-            <Store className="w-4 h-4 shrink-0" />
-            <span className="truncate">Identitas Toko</span>
-          </TabsTrigger>
+        <div className="w-full p-1 bg-muted/60 rounded-2xl border shadow-xs">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1.5 bg-transparent p-0">
+            <TabsTrigger
+              value="toko"
+              className="h-10 sm:h-11 px-3 text-xs font-bold rounded-xl gap-2 border border-transparent data-active:border-border/60 data-active:bg-background data-active:text-foreground data-active:shadow-xs transition-all"
+            >
+              <Store className="w-4 h-4 shrink-0 text-primary" />
+              <span className="truncate">Identitas Toko</span>
+            </TabsTrigger>
 
-          <TabsTrigger
-            value="printer"
-            className="gap-2 py-2.5 px-3 font-bold text-xs rounded-xl data-active:bg-background data-active:text-primary data-active:shadow-sm transition-all"
-          >
-            <Printer className="w-4 h-4 shrink-0" />
-            <span className="truncate">Printer & Struk</span>
-          </TabsTrigger>
+            <TabsTrigger
+              value="printer"
+              className="h-10 sm:h-11 px-3 text-xs font-bold rounded-xl gap-2 border border-transparent data-active:border-border/60 data-active:bg-background data-active:text-foreground data-active:shadow-xs transition-all"
+            >
+              <Printer className="w-4 h-4 shrink-0 text-primary" />
+              <span className="truncate">Printer & Struk</span>
+            </TabsTrigger>
 
-          <TabsTrigger
-            value="kasir"
-            className="gap-2 py-2.5 px-3 font-bold text-xs rounded-xl data-active:bg-background data-active:text-primary data-active:shadow-sm transition-all"
-          >
-            <ShoppingCart className="w-4 h-4 shrink-0" />
-            <span className="truncate">Alur Kasir (POS)</span>
-          </TabsTrigger>
+            <TabsTrigger
+              value="kasir"
+              className="h-10 sm:h-11 px-3 text-xs font-bold rounded-xl gap-2 border border-transparent data-active:border-border/60 data-active:bg-background data-active:text-foreground data-active:shadow-xs transition-all"
+            >
+              <ShoppingCart className="w-4 h-4 shrink-0 text-primary" />
+              <span className="truncate">Alur Kasir (POS)</span>
+            </TabsTrigger>
 
-          <TabsTrigger
-            value="tampilan"
-            className="gap-2 py-2.5 px-3 font-bold text-xs rounded-xl data-active:bg-background data-active:text-primary data-active:shadow-sm transition-all"
-          >
-            <Type className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tampilan Layar</span>
-          </TabsTrigger>
-        </TabsList>
+            <TabsTrigger
+              value="tampilan"
+              className="h-10 sm:h-11 px-3 text-xs font-bold rounded-xl gap-2 border border-transparent data-active:border-border/60 data-active:bg-background data-active:text-foreground data-active:shadow-xs transition-all"
+            >
+              <Type className="w-4 h-4 shrink-0 text-primary" />
+              <span className="truncate">Tampilan Layar</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* TAB 1: IDENTITAS TOKO */}
         <TabsContent value="toko" className="mt-0 outline-none animate-in fade-in-50 duration-200">
