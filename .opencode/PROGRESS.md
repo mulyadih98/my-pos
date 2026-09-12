@@ -95,6 +95,10 @@
 - [x] **Identitas Nama Kasir pada Struk Transaksi & Kasbon:**
   - **Pencatatan Otomatis:** Sistem mendeteksi user aktif yang login (Owner atau Kasir) dan otomatis mencantumkan nama kasir pada transaksi baru serta pembayaran kasbon.
   - **Tampilan Struk Multi-Media:** Baris `Kasir: [Nama Kasir]` tercetak jelas pada thermal iframe printer, Direct ESC/POS Bluetooth (`Ksr:`), cetak ulang struk di Riwayat Transaksi, dan modal dialog struk belanja.
+- [x] **Validasi Stok Real-Time & Penanganan Error Transaksi:**
+  - **Penanganan Error Server Action Bersih:** Server action `createTransaksi` menangani pembatalan transaksi dengan respons aman `{ success: false, error }` (bukan unhandled throw), mencegah error HTTP 500 pada Vercel.
+  - **Validasi Stok Sisi Klien:** Pengecekan sisa stok fisik secara presisi pada `addToCart`, tombol step `updateQty (+/-)`, dan input angka langsung `setQtyDirect` dengan notifikasi peringatan sebelum transaksi dikirim ke server.
+  - **Sinkronisasi Stok Kasir Instan:** Pengurangan stok lokal seketika pada state keranjang kasir setelah transaksi sukses tanpa perlu refresh halaman manual.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

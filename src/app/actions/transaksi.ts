@@ -22,6 +22,18 @@ export interface TransaksiFilter {
   metodePembayaran?: string; // "TUNAI" | "QRIS" | "TRANSFER" | "DEBIT" | "HUTANG" | "SEMUA"
 }
 
+export type CreateTransaksiResult =
+  | {
+      success: true;
+      invoice: string;
+      kasbonInfo?: any;
+      kasirNama: string;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
 export async function createTransaksi(payload: {
   subtotal?: number;
   diskonPersen?: number;
@@ -41,7 +53,7 @@ export async function createTransaksi(payload: {
   kasbonJatuhTempo?: string | null;
   potongKembalianKasbonId?: string;
   potongKembalianJumlah?: number;
-}) {
+}): Promise<CreateTransaksiResult> {
   const {
     subtotal: initialSubtotal,
     diskonPersen = 0,
@@ -77,8 +89,9 @@ export async function createTransaksi(payload: {
   const currentUser = await getCurrentUser();
   let finalKasbonInfo: any = null;
 
-  await db.$transaction(async (tx) => {
-    let linkedKasbonId: string | null = null;
+  try {
+    await db.$transaction(async (tx) => {
+      let linkedKasbonId: string | null = null;
     let nominalTambahHutang = 0;
 
     // 1. Tangani jika metode pembayaran adalah HUTANG (Kasbon)
@@ -237,16 +250,23 @@ export async function createTransaksi(payload: {
       });
 
       // Update Stock: total_stock -= (qty * konversi)
-      await tx.barang.update({
-        where: { id: item.barangId },
-        data: {
-          stok: {
-            decrement: stokDihapus,
+        await tx.barang.update({
+          where: { id: item.barangId },
+          data: {
+            stok: {
+              decrement: stokDihapus,
+            },
           },
-        },
-      });
-    }
-  });
+        });
+      }
+    }, { maxWait: 10000, timeout: 20000 });
+  } catch (err: any) {
+    console.warn("[createTransaksi] Transaksi dibatalkan:", err.message);
+    return {
+      success: false,
+      error: err.message || "Gagal memproses transaksi.",
+    };
+  }
 
   try {
     revalidatePath("/dashboard/barang");

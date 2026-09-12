@@ -56,6 +56,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createTransaksi } from "@/app/actions/transaksi";
 import { searchKasbonForPOS } from "@/app/actions/kasbon";
 import { toast } from "sonner";
@@ -147,6 +148,13 @@ export function POSClient({
   initialPromos?: PromoRule[];
   currentUser?: UserSession | null;
 }) {
+  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -248,7 +256,7 @@ export function POSClient({
       prevCart.map((item) => {
         if (item.isBonus) return item;
 
-        const product = initialProducts.find((p) => p.id === item.barangId);
+        const product = products.find((p) => p.id === item.barangId);
         const varian = product?.varians.find((v) => v.id === item.varianId);
         if (varian) {
           return {
@@ -259,7 +267,7 @@ export function POSClient({
         return item;
       })
     );
-  }, [priceType, initialProducts]);
+  }, [priceType, products]);
 
   // Parse multiplier from search (misal "10*kopi" atau "5*899...")
   const parsedSearch = useMemo(() => {
@@ -297,10 +305,10 @@ export function POSClient({
       return [];
     }
 
-    return initialProducts
+    return products
       .filter((p) => p.nama.toLowerCase().includes(q) || p.kode.toLowerCase().includes(q))
       .slice(0, 30);
-  }, [parsedSearch.query, initialProducts]);
+  }, [parsedSearch.query, products]);
 
   // Reset selectedIndex when search results change
   useEffect(() => {
@@ -325,7 +333,7 @@ export function POSClient({
         const bonusQty = bonusSets * promo.hadiahQty;
 
         if (bonusQty > 0) {
-          const hadiahProduct = initialProducts.find((p) => p.id === promo.barangHadiahId);
+          const hadiahProduct = products.find((p) => p.id === promo.barangHadiahId);
           if (hadiahProduct && hadiahProduct.varians.length > 0) {
             const hadiahVarian = hadiahProduct.varians[0];
             requiredBonuses.push({
@@ -392,7 +400,32 @@ export function POSClient({
         toast.success(`+ ${qtyToAdd}x Hadiah ${product.nama} (Rp 0) ditambahkan`);
         setSearch("");
         searchInputRef.current?.focus();
-        return;
+        return true;
+      }
+
+      // Validasi ketersediaan stok fisik barang
+      const konversi = varian.konversi || 1;
+      const requestedPcs = qtyToAdd * konversi;
+      const alreadyInCartPcs = cart
+        .filter((item) => item.barangId === product.id)
+        .reduce((sum, item) => sum + item.qty * (item.konversi || 1), 0);
+
+      if (product.stok <= 0) {
+        playErrorSound();
+        toast.error(`Stok barang "${product.nama}" habis (0 pcs)!`);
+        setSearch("");
+        searchInputRef.current?.focus();
+        return false;
+      }
+
+      if (alreadyInCartPcs + requestedPcs > product.stok) {
+        playErrorSound();
+        toast.error(
+          `Stok tidak mencukupi untuk "${product.nama}". Sisa stok: ${product.stok} pcs, sudah di keranjang: ${alreadyInCartPcs} pcs.`
+        );
+        setSearch("");
+        searchInputRef.current?.focus();
+        return false;
       }
 
       const harga = priceType === "retail" ? varian.hargaRetail : varian.hargaMember;
@@ -442,8 +475,9 @@ export function POSClient({
 
       setSearch("");
       searchInputRef.current?.focus();
+      return true;
     },
-    [cart, priceType, initialProducts, initialPromos]
+    [cart, priceType, products, initialPromos]
   );
 
   // Subtotal kotor sebelum diskon transaksi
@@ -647,58 +681,78 @@ export function POSClient({
       };
 
       const result = await createTransaksi(payload);
-      if (result.success) {
-        playSuccessChime();
-
-        setReceiptData({
-          invoice: result.invoice,
-          subtotal,
-          diskonPersen,
-          diskonNominal,
-          total,
-          metodePembayaran,
-          referensiPembayaran: referensiPembayaran ? referensiPembayaran.trim() : null,
-          bayar: effectiveBayar,
-          kembali: effectiveKembali,
-          catatan: catatan ? catatan.trim() : null,
-          status: "SELESAI",
-          date: new Date(),
-          member: member ? { nama: member.nama, kode: member.kode } : null,
-          kasirNama: result.kasirNama || currentUser?.nama || currentUser?.username || "Kasir",
-          items: cart.map((item) => ({
-            nama: item.nama,
-            unitName: item.unitName,
-            qty: item.qty,
-            harga: item.harga,
-            isBonus: item.isBonus,
-            bonusLabel: item.bonusLabel,
-          })),
-
-          // Kasbon Struk Info
-          receiptType: "TRANSAKSI",
-          namaPelanggan:
-            result.kasbonInfo?.namaPelanggan || (member ? member.nama : kasbonNama) || null,
-          tambahHutang: result.kasbonInfo?.tambahHutang,
-          potongKembalian: result.kasbonInfo?.potongKembalian,
-          saldoHutangAkhir: result.kasbonInfo?.saldoAkhir,
-          jatuhTempo:
-            result.kasbonInfo?.jatuhTempo || (kasbonJatuhTempo ? new Date(kasbonJatuhTempo) : null),
-        });
-
-        setIsReceiptOpen(true);
-        setCart([]);
-        setBayar(0);
-        setKasbonDp(0);
-        setKasbonNama("");
-        setKasbonTelepon("");
-        setKasbonJatuhTempo("");
-        setIsPotongKembalian(false);
-        setPotongKembalianJumlah(0);
-        setCustomerKasbon(null);
-        setReferensiPembayaran("");
-        setDiscountValue(0);
-        setCatatan("");
+      if (!result.success) {
+        playErrorSound();
+        toast.error(result.error || "Gagal memproses transaksi.");
+        return;
       }
+
+      playSuccessChime();
+
+      setReceiptData({
+        invoice: result.invoice,
+        subtotal,
+        diskonPersen,
+        diskonNominal,
+        total,
+        metodePembayaran,
+        referensiPembayaran: referensiPembayaran ? referensiPembayaran.trim() : null,
+        bayar: effectiveBayar,
+        kembali: effectiveKembali,
+        catatan: catatan ? catatan.trim() : null,
+        status: "SELESAI",
+        date: new Date(),
+        member: member ? { nama: member.nama, kode: member.kode } : null,
+        kasirNama: result.kasirNama || currentUser?.nama || currentUser?.username || "Kasir",
+        items: cart.map((item) => ({
+          nama: item.nama,
+          unitName: item.unitName,
+          qty: item.qty,
+          harga: item.harga,
+          isBonus: item.isBonus,
+          bonusLabel: item.bonusLabel,
+        })),
+
+        // Kasbon Struk Info
+        receiptType: "TRANSAKSI",
+        namaPelanggan:
+          result.kasbonInfo?.namaPelanggan || (member ? member.nama : kasbonNama) || null,
+        tambahHutang: result.kasbonInfo?.tambahHutang,
+        potongKembalian: result.kasbonInfo?.potongKembalian,
+        saldoHutangAkhir: result.kasbonInfo?.saldoAkhir,
+        jatuhTempo:
+          result.kasbonInfo?.jatuhTempo || (kasbonJatuhTempo ? new Date(kasbonJatuhTempo) : null),
+      });
+
+      setIsReceiptOpen(true);
+
+      // Kurangi stok barang lokal langsung agar tampilan kasir langsung update
+      setProducts((prev) =>
+        prev.map((p) => {
+          const soldItems = cart.filter((c) => c.barangId === p.id);
+          if (soldItems.length > 0) {
+            const totalSoldPcs = soldItems.reduce((acc, c) => acc + c.qty * (c.konversi || 1), 0);
+            return { ...p, stok: Math.max(0, p.stok - totalSoldPcs) };
+          }
+          return p;
+        })
+      );
+
+      // Refresh data di background
+      router.refresh();
+
+      setCart([]);
+      setBayar(0);
+      setKasbonDp(0);
+      setKasbonNama("");
+      setKasbonTelepon("");
+      setKasbonJatuhTempo("");
+      setIsPotongKembalian(false);
+      setPotongKembalianJumlah(0);
+      setCustomerKasbon(null);
+      setReferensiPembayaran("");
+      setDiscountValue(0);
+      setCatatan("");
     } catch (error: any) {
       playErrorSound();
       toast.error(error.message || "Terjadi kesalahan saat memproses transaksi");
@@ -878,7 +932,7 @@ export function POSClient({
       if (!query && multiplier === 1) return;
 
       // 1. Exact match barcode (kode)
-      const exactMatch = initialProducts.find(
+      const exactMatch = products.find(
         (p) => p.kode.toLowerCase() === query.toLowerCase()
       );
       if (exactMatch) {
@@ -904,29 +958,23 @@ export function POSClient({
     if (!cleanCode) return false;
 
     // 1. Cari exact match kode barcode produk
-    const exactMatch = initialProducts.find(
+    const exactMatch = products.find(
       (p) => p.kode.toLowerCase() === cleanCode.toLowerCase()
     );
 
     if (exactMatch) {
-      addToCart(exactMatch, 0, false, 1);
-      playSuccessChime();
-      toast.success(`+ 1x ${exactMatch.nama} masuk keranjang`);
-      return true;
+      return addToCart(exactMatch, 0, false, 1);
     }
 
     // 2. Jika kode tidak cocok persis, cari yang mengandung kode
-    const partialMatch = initialProducts.find(
+    const partialMatch = products.find(
       (p) =>
         p.kode.toLowerCase().includes(cleanCode.toLowerCase()) ||
         p.nama.toLowerCase().includes(cleanCode.toLowerCase())
     );
 
     if (partialMatch) {
-      addToCart(partialMatch, 0, false, 1);
-      playSuccessChime();
-      toast.success(`+ 1x ${partialMatch.nama} masuk keranjang`);
-      return true;
+      return addToCart(partialMatch, 0, false, 1);
     }
 
     playErrorSound();
@@ -936,7 +984,7 @@ export function POSClient({
 
   // Tambah bonus B1G1 manual untuk baris item tertentu
   const addManualBonusRow = (item: CartItem) => {
-    const product = initialProducts.find((p) => p.id === item.barangId);
+    const product = products.find((p) => p.id === item.barangId);
     if (!product) return;
 
     const newBonusItem: CartItem = {
@@ -961,6 +1009,22 @@ export function POSClient({
 
   // Update Qty item di keranjang (Step +/-)
   const updateQty = (id: string, delta: number) => {
+    const targetItem = cart.find((item) => item.id === id);
+    if (!targetItem) return;
+
+    if (delta > 0) {
+      const konversi = targetItem.konversi || 1;
+      const currentInCartPcs = cart
+        .filter((c) => c.barangId === targetItem.barangId)
+        .reduce((sum, c) => sum + c.qty * (c.konversi || 1), 0);
+
+      if (currentInCartPcs + delta * konversi > targetItem.maxStok) {
+        playErrorSound();
+        toast.error(`Tidak bisa menambah. Stok tersedia hanya ${targetItem.maxStok} pcs.`);
+        return;
+      }
+    }
+
     const updated = cart.map((item) => {
       if (item.id === id) {
         const newQty = Math.max(1, item.qty + delta);
@@ -975,7 +1039,23 @@ export function POSClient({
 
   // Update Qty langsung dari input angka
   const setQtyDirect = (id: string, newQty: number) => {
-    const validQty = Math.max(1, isNaN(newQty) ? 1 : newQty);
+    const targetItem = cart.find((item) => item.id === id);
+    if (!targetItem) return;
+
+    const konversi = targetItem.konversi || 1;
+    const otherInCartPcs = cart
+      .filter((c) => c.barangId === targetItem.barangId && c.id !== id)
+      .reduce((sum, c) => sum + c.qty * (c.konversi || 1), 0);
+
+    const maxAllowedQty = Math.max(1, Math.floor((targetItem.maxStok - otherInCartPcs) / konversi));
+    let validQty = Math.max(1, isNaN(newQty) ? 1 : newQty);
+
+    if (validQty > maxAllowedQty) {
+      playErrorSound();
+      toast.warning(`Jumlah disesuaikan dengan stok maksimal yang tersedia (${maxAllowedQty})`);
+      validQty = maxAllowedQty;
+    }
+
     const updated = cart.map((item) => {
       if (item.id === id) {
         return { ...item, qty: validQty };
@@ -1003,7 +1083,7 @@ export function POSClient({
   const changeVariant = (cartItemId: string, newVarianId: string) => {
     const updated = cart.map((item) => {
       if (item.id === cartItemId) {
-        const product = initialProducts.find((p) => p.id === item.barangId);
+        const product = products.find((p) => p.id === item.barangId);
         const varian = product?.varians.find((v: any) => v.id === newVarianId);
 
         if (varian) {
@@ -1243,8 +1323,12 @@ export function POSClient({
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] text-muted-foreground">
-                              Kode: {p.kode} | Stok: {p.stok}
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                              <span>Kode: {p.kode}</span>
+                              <span>&bull;</span>
+                              <span className={p.stok <= 0 ? "text-destructive font-bold" : p.stok <= 5 ? "text-amber-600 font-semibold" : "font-medium"}>
+                                Stok: {p.stok} {p.stok <= 0 ? "(Habis)" : "pcs"}
+                              </span>
                             </p>
                           </div>
                           <div className="flex gap-1 items-center">
@@ -1413,7 +1497,7 @@ export function POSClient({
                             {/* Variant Selector */}
                             <div className="flex items-center gap-2 mt-1">
                               {(() => {
-                                const product = initialProducts.find(
+                                const product = products.find(
                                   (p) => p.id === item.barangId
                                 );
                                 const hasMultipleVarians = (product?.varians?.length || 0) > 1;
