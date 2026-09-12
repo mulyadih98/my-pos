@@ -110,6 +110,9 @@
   - **Fix Overflow & Wadah Tab:** Memperbaiki styling container `TabsList` dan `TabsTrigger` agar tombol tab tidak terkunci pada tinggi sempit 32px (`h-8`), membungkus seluruh tombol rapi 100% di dalam box container baik saat 1 baris di desktop maupun 2 baris di layar kecil.
   - **Pratinjau Kontekstual Dinamis:** Tab Toko & Printer menyertakan Live Preview Struk Thermal, Tab Kasir menampilkan simulasi modal kuantitas & panduan shortcut, dan Tab Tampilan menampilkan simulasi kartu produk real-time.
   - **Aksi Terpusat:** Tombol simpan per perangkat, default database, dan reset ditempatkan pada bar bawah terpadu yang selalu mudah dijangkau.
+- [x] **Dokumentasi Lengkap Instalasi Windows & VPS Linux (`README.md`):**
+  - **Panduan Windows:** Langkah instalasi PC kasir, konfigurasi auto-start service latar belakang 24/7 (NSSM Windows Service resmi, PM2 Windows, dan Silent VBScript), serta implementasi SSL HTTPS lengkap (Caddy otomatis Let's Encrypt, Nginx for Windows + win-acme, SSL lokal offline via mkcert, dan Cloudflare Tunnel).
+  - **Panduan VPS Linux:** Setup Ubuntu/Debian, Node.js 20 LTS, daemon PM2, Nginx reverse proxy port 3000, Let's Encrypt Certbot, UFW firewall, dan instruksi update maintenance.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---
