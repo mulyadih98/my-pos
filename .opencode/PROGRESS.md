@@ -88,6 +88,10 @@
 - [x] **Optimasi Layout Kasir Layar Laptop 1360x768 (Tombol Bayar Selalu Terlihat):**
   - **Zero Scroll di 1360x768:** Mengompresi ruang vertikal pada `TransaksiPage` dan menyatukan kartu Member menjadi bar pencarian kompak sehingga seluruh panel pembayaran muat dalam 1 layar utuh tanpa scroll.
   - **Sticky Bottom Action Footer:** Total Tagihan dan tombol `[PROSES BAYAR [F10]]` diposisikan sebagai pinned footer (`shrink-0` di dasar kartu) sehingga tidak akan pernah terpotong atau tenggelam di layar mana pun, bahkan jika browser di-zoom hingga 125%-150%.
+- [x] **Pengaturan & Peningkatan Jarak Baris Item Struk (Receipt Line Spacing):**
+  - **Jarak Standar Lebih Lega & Mudah Dibaca:** Mengubah default margin antar item dari 4px menjadi 7px dengan padding dan line-height proporsional sehingga struk belanja tidak lagi berdempetan.
+  - **Opsi Pengaturan 3 Tingkat:** Pilihan spasi `compact` (Rapat/Hemat Kertas), `normal` (Sedang/Rekomendasi - berjarak bersih), dan `loose` (Lega - berjarak jauh dengan garis pemisah putus-putus) yang tersinkronisasi di Database Supabase & LocalStorage per perangkat.
+  - **Dukungan Multi-Engine:** Diterapkan pada thermal printer iframe, Direct ESC/POS Bluetooth, modal dialog pratinjau struk kasir (`receipt-modal.tsx`), serta live preview di halaman `/dashboard/pengaturan`.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

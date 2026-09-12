@@ -73,6 +73,7 @@ export function generateThermalReceiptHtml(
 ): string {
   const width = settings.ukuranKertas || "58mm";
   const is58 = width === "58mm";
+  const spacing = settings.itemLineSpacing || "normal";
   const divider = getDivider(width);
 
   const formattedDate = formatReceiptDate(data.date);
@@ -81,6 +82,27 @@ export function generateThermalReceiptHtml(
   const printWidth = is58 ? "48mm" : "72mm";
   const fontSize = is58 ? "11px" : "12px";
   const titleSize = is58 ? "14px" : "16px";
+
+  // Pengaturan jarak baris belanja
+  let itemMargin = "6px 0 7px 0";
+  let itemLineHeight = "1.35";
+  let itemPaddingBottom = "3px";
+  let itemBorderBottom = "none";
+  let detailMarginTop = "2px";
+
+  if (spacing === "compact") {
+    itemMargin = "3px 0 4px 0";
+    itemLineHeight = "1.25";
+    itemPaddingBottom = "0px";
+    itemBorderBottom = "none";
+    detailMarginTop = "1px";
+  } else if (spacing === "loose") {
+    itemMargin = "9px 0 9px 0";
+    itemLineHeight = "1.45";
+    itemPaddingBottom = "5px";
+    itemBorderBottom = "1px dashed #000000";
+    detailMarginTop = "3px";
+  }
 
   const itemsHtml = data.items
     .map((item) => {
@@ -166,7 +188,10 @@ export function generateThermalReceiptHtml(
             margin-bottom: 2px;
           }
           .item-row {
-            margin: 4px 0;
+            margin: ${itemMargin};
+            padding-bottom: ${itemPaddingBottom};
+            border-bottom: ${itemBorderBottom};
+            line-height: ${itemLineHeight};
           }
           .item-header {
             display: flex;
@@ -185,6 +210,7 @@ export function generateThermalReceiptHtml(
             display: flex;
             justify-content: space-between;
             font-size: 9.5px;
+            margin-top: ${detailMarginTop};
           }
           .bonus-tag {
             font-weight: bold;

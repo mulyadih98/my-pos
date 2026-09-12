@@ -289,13 +289,14 @@ model ItemStokOpname {
 }
 
 model Pengaturan {
-  id           String   @id @default("default")
-  namaToko     String   @default("MY POS STORE")
-  alamat       String   @default("Jl. Toko Retail Modern No. 1")
-  telepon      String   @default("0812-3456-7890")
-  footerPesan  String   @default("Terima Kasih Atas Kunjungan Anda\nBarang yang sudah dibeli tidak dapat ditukar")
-  ukuranKertas String   @default("58mm")
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default("default")
+  namaToko        String   @default("MY POS STORE")
+  alamat          String   @default("Jl. Toko Retail Modern No. 1")
+  telepon         String   @default("0812-3456-7890")
+  footerPesan     String   @default("Terima Kasih Atas Kunjungan Anda\nBarang yang sudah dibeli tidak dapat ditukar")
+  ukuranKertas    String   @default("58mm")
+  itemLineSpacing String   @default("normal")
+  updatedAt       DateTime @updatedAt
 }
 
 model User {

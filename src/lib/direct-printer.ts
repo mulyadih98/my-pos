@@ -254,7 +254,9 @@ function buildEscPosReceipt(data: PrintableReceiptData, settings: StoreSettings)
     addText(divider);
 
     // 5. Items
-    for (const item of data.items) {
+    const spacing = settings.itemLineSpacing || "normal";
+    for (let idx = 0; idx < data.items.length; idx++) {
+      const item = data.items[idx];
       const subtotalStr = item.isBonus
         ? "GRATIS"
         : `Rp ${(item.harga * item.qty).toLocaleString("id-ID")}`;
@@ -266,6 +268,15 @@ function buildEscPosReceipt(data: PrintableReceiptData, settings: StoreSettings)
 
       if (item.isBonus && item.bonusLabel) {
         addText(`  (${item.bonusLabel})\n`);
+      }
+
+      // Jarak antar item belanja sesuai pengaturan
+      if (idx < data.items.length - 1) {
+        if (spacing === "loose") {
+          addText("  . . . . . . . . . . . . . . . \n");
+        } else if (spacing === "normal") {
+          addText("\n");
+        }
       }
     }
 

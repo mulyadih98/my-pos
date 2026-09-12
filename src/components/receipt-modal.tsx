@@ -316,16 +316,31 @@ export function ReceiptModal({
                 </div>
 
                 {/* List Item Belanja */}
-                <div className="space-y-1 text-[11px]">
+                <div
+                  className={`text-[11px] ${
+                    (storeSettings.itemLineSpacing || "normal") === "loose"
+                      ? "space-y-2.5 divide-y divide-dashed divide-black/40"
+                      : (storeSettings.itemLineSpacing || "normal") === "normal"
+                      ? "space-y-2.5"
+                      : "space-y-1"
+                  }`}
+                >
                   {data.items.map((item, idx) => (
-                    <div key={idx}>
+                    <div
+                      key={idx}
+                      className={
+                        (storeSettings.itemLineSpacing || "normal") === "loose" && idx > 0
+                          ? "pt-2"
+                          : ""
+                      }
+                    >
                       <div className="flex justify-between font-bold">
                         <span>{item.nama}</span>
                         <span>
                           {item.isBonus ? "GRATIS" : `Rp ${(item.harga * item.qty).toLocaleString("id-ID")}`}
                         </span>
                       </div>
-                      <div className="flex justify-between text-[9.5px]">
+                      <div className="flex justify-between text-[9.5px] mt-0.5">
                         <span>
                           {item.qty} {item.unitName} x Rp {item.isBonus ? "0" : item.harga.toLocaleString("id-ID")}
                         </span>

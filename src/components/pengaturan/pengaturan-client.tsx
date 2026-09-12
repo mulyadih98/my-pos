@@ -274,6 +274,75 @@ export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSe
               </div>
             </div>
 
+            {/* Jarak Baris Antar Item Struk */}
+            <div className="space-y-2 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold text-sm">Jarak Baris Item Belanja pada Struk</Label>
+                <span className="text-xs text-muted-foreground">Line Spacing Struk</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, itemLineSpacing: "compact" })}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    settings.itemLineSpacing === "compact"
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="font-bold flex items-center gap-1.5 text-xs">
+                    <span>Rapat (Hemat)</span>
+                    {settings.itemLineSpacing === "compact" && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Jarak padat, paling hemat kertas struk.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, itemLineSpacing: "normal" })}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    (settings.itemLineSpacing || "normal") === "normal"
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="font-bold flex items-center gap-1.5 text-xs">
+                    <span>Sedang (Rekomendasi)</span>
+                    {(settings.itemLineSpacing || "normal") === "normal" && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Lebih renggang & nyaman dibaca kasir/pembeli.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, itemLineSpacing: "loose" })}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    settings.itemLineSpacing === "loose"
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="font-bold flex items-center gap-1.5 text-xs">
+                    <span>Lega (Jauh / Pembatas)</span>
+                    {settings.itemLineSpacing === "loose" && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Jarak antar item jauh dengan garis pembatas jelas.
+                  </p>
+                </button>
+              </div>
+            </div>
+
             {/* Status & Cek Printer */}
             <div className="p-3.5 rounded-lg bg-muted/40 border space-y-3">
               <div className="flex items-center justify-between">
@@ -573,22 +642,30 @@ export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSe
             {settings.ukuranKertas === "58mm" ? "--------------------------------" : "------------------------------------------------"}
           </div>
 
-          {/* Dummy Items */}
-          <div className="space-y-1 text-[11px]">
-            <div>
+          {/* Dummy Items dengan Simulasi Jarak Baris Langsung */}
+          <div
+            className={`text-[11px] ${
+              settings.itemLineSpacing === "loose"
+                ? "space-y-2.5 divide-y divide-dashed divide-black/40"
+                : (settings.itemLineSpacing || "normal") === "normal"
+                ? "space-y-2.5"
+                : "space-y-1"
+            }`}
+          >
+            <div className={settings.itemLineSpacing === "loose" ? "pt-1" : ""}>
               <div className="flex justify-between font-bold">
                 <span>Indomie Goreng 85g</span>
                 <span>Rp 7.000</span>
               </div>
-              <div className="text-[9.5px]">2 Pcs x Rp 3.500</div>
+              <div className="text-[9.5px] mt-0.5">2 Pcs x Rp 3.500</div>
             </div>
 
-            <div>
+            <div className={settings.itemLineSpacing === "loose" ? "pt-2" : ""}>
               <div className="flex justify-between font-bold">
                 <span>Aqua Botol 600ml</span>
                 <span>Rp 3.500</span>
               </div>
-              <div className="text-[9.5px]">1 Botol x Rp 3.500</div>
+              <div className="text-[9.5px] mt-0.5">1 Botol x Rp 3.500</div>
             </div>
           </div>
 

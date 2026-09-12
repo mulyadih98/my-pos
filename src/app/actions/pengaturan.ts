@@ -19,6 +19,7 @@ export async function getPengaturanDefault(): Promise<StoreSettings> {
           telepon: DEFAULT_STORE_SETTINGS.telepon,
           footerPesan: DEFAULT_STORE_SETTINGS.footerPesan,
           ukuranKertas: DEFAULT_STORE_SETTINGS.ukuranKertas,
+          itemLineSpacing: DEFAULT_STORE_SETTINGS.itemLineSpacing || "normal",
         },
       });
     }
@@ -29,6 +30,7 @@ export async function getPengaturanDefault(): Promise<StoreSettings> {
       telepon: setting.telepon,
       footerPesan: setting.footerPesan,
       ukuranKertas: (setting.ukuranKertas as "58mm" | "80mm") || "58mm",
+      itemLineSpacing: (setting.itemLineSpacing as "compact" | "normal" | "loose") || "normal",
     };
   } catch (error) {
     console.error("Gagal mengambil pengaturan default:", error);
@@ -47,6 +49,7 @@ export async function updatePengaturanDefault(data: StoreSettings): Promise<{ su
         telepon: data.telepon || DEFAULT_STORE_SETTINGS.telepon,
         footerPesan: data.footerPesan || DEFAULT_STORE_SETTINGS.footerPesan,
         ukuranKertas: data.ukuranKertas || "58mm",
+        itemLineSpacing: data.itemLineSpacing || "normal",
       },
       update: {
         namaToko: data.namaToko,
@@ -54,6 +57,7 @@ export async function updatePengaturanDefault(data: StoreSettings): Promise<{ su
         telepon: data.telepon,
         footerPesan: data.footerPesan,
         ukuranKertas: data.ukuranKertas,
+        itemLineSpacing: data.itemLineSpacing || "normal",
       },
     });
 
@@ -67,6 +71,7 @@ export async function updatePengaturanDefault(data: StoreSettings): Promise<{ su
         telepon: updated.telepon,
         footerPesan: updated.footerPesan,
         ukuranKertas: updated.ukuranKertas as "58mm" | "80mm",
+        itemLineSpacing: (updated.itemLineSpacing as "compact" | "normal" | "loose") || "normal",
       },
     };
   } catch (error: any) {
