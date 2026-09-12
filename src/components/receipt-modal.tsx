@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Printer, CheckCircle2, ArrowRight, Settings } from "lucide-react";
+import { Printer, CheckCircle2, ArrowRight } from "lucide-react";
 import { StoreSettings } from "@/types/pengaturan";
 import { getLocalStoreSettings } from "@/lib/settings-client";
 import {
@@ -19,7 +18,6 @@ import {
   getConnectedPrinterName,
 } from "@/lib/direct-printer";
 import { toast } from "sonner";
-import Link from "next/link";
 
 export interface ReceiptData {
   invoice: string;
@@ -94,24 +92,7 @@ export function ReceiptModal({
     }
   }, [open]);
 
-  // Keyboard navigation: Enter = Cetak Struk, Esc = Selesai Tanpa Cetak
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open || isPrinting) return;
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handlePrint();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        handleFinishWithoutPrint();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, isPrinting, data, storeSettings, selectedWidth]);
-
-  const handlePrint = async () => {
+  const handlePrint = useCallback(async () => {
     if (!data || isPrinting) return;
     setIsPrinting(true);
 
@@ -133,12 +114,29 @@ export function ReceiptModal({
     } finally {
       setIsPrinting(false);
     }
-  };
+  }, [data, isPrinting, storeSettings, selectedWidth]);
 
-  const handleFinishWithoutPrint = () => {
+  const handleFinishWithoutPrint = useCallback(() => {
     onOpenChange(false);
     onNewTransaction();
-  };
+  }, [onOpenChange, onNewTransaction]);
+
+  // Keyboard navigation: Enter = Cetak Struk, Esc = Selesai Tanpa Cetak
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!open || isPrinting) return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handlePrint();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        handleFinishWithoutPrint();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, isPrinting, handlePrint, handleFinishWithoutPrint]);
 
   if (!data) return null;
 
@@ -344,21 +342,21 @@ export function ReceiptModal({
                 </div>
 
                 {/* Ringkasan Pembayaran */}
-                <div className="space-y-0.5 font-bold">
+                <div className="space-y-0.5 font-bold text-black">
                   {data.diskonNominal && data.diskonNominal > 0 ? (
                     <>
                       <div className="flex justify-between text-[10.5px]">
                         <span>Subtotal:</span>
                         <span>Rp {(data.subtotal || (data.total + data.diskonNominal)).toLocaleString("id-ID")}</span>
                       </div>
-                      <div className="flex justify-between text-[10.5px] text-red-600">
+                      <div className="flex justify-between text-[10.5px]">
                         <span>Diskon{data.diskonPersen ? ` (${data.diskonPersen}%)` : ""}:</span>
                         <span>-Rp {data.diskonNominal.toLocaleString("id-ID")}</span>
                       </div>
                     </>
                   ) : null}
                   <div className="flex justify-between text-xs font-black">
-                    <span>TOTAL:</span>
+                    <span>TOTAL BELANJA:</span>
                     <span>Rp {data.total.toLocaleString("id-ID")}</span>
                   </div>
                   <div className="flex justify-between text-[10px] font-semibold">
@@ -383,20 +381,20 @@ export function ReceiptModal({
                         <span>+Rp {(data.tambahHutang ?? (data.total - data.bayar)).toLocaleString("id-ID")}</span>
                       </div>
                       {data.saldoHutangAkhir !== undefined && (
-                        <div className="flex justify-between text-xs font-black text-amber-700">
+                        <div className="flex justify-between text-xs font-black">
                           <span>TOTAL SALDO HUTANG:</span>
                           <span>Rp {data.saldoHutangAkhir.toLocaleString("id-ID")}</span>
                         </div>
                       )}
                       {data.jatuhTempo && (
-                        <div className="flex justify-between text-[9.5px] text-muted-foreground">
+                        <div className="flex justify-between text-[9.5px]">
                           <span>Jatuh Tempo:</span>
                           <span>{typeof data.jatuhTempo === "string" ? data.jatuhTempo : new Date(data.jatuhTempo).toLocaleDateString("id-ID")}</span>
                         </div>
                       )}
                       <div className="text-center text-[9.5px] pt-3">
                         <p>Tanda Tangan Pelanggan,</p>
-                        <p className="mt-5">({data.namaPelanggan || (data.member ? data.member.nama : "....................")})</p>
+                        <p className="mt-5 font-bold">({data.namaPelanggan || (data.member ? data.member.nama : "....................")})</p>
                       </div>
                     </>
                   ) : data.potongKembalian && data.potongKembalian > 0 ? (
@@ -405,11 +403,11 @@ export function ReceiptModal({
                         <span>TUNAI DITERIMA:</span>
                         <span>Rp {data.bayar.toLocaleString("id-ID")}</span>
                       </div>
-                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                      <div className="flex justify-between text-[10px]">
                         <span>KEMBALIAN BELANJA:</span>
                         <span>Rp ${(data.bayar - data.total).toLocaleString("id-ID")}</span>
                       </div>
-                      <div className="flex justify-between text-[10.5px] text-amber-600">
+                      <div className="flex justify-between text-[10.5px]">
                         <span>POTONG KASBON:</span>
                         <span>-Rp {data.potongKembalian.toLocaleString("id-ID")}</span>
                       </div>
@@ -418,7 +416,7 @@ export function ReceiptModal({
                         <span>Rp {data.kembali.toLocaleString("id-ID")}</span>
                       </div>
                       {data.saldoHutangAkhir !== undefined && (
-                        <div className="flex justify-between text-[10px] text-amber-700">
+                        <div className="flex justify-between text-[10px] font-bold">
                           <span>SISA SALDO HUTANG:</span>
                           <span>Rp {data.saldoHutangAkhir.toLocaleString("id-ID")}</span>
                         </div>
@@ -436,7 +434,7 @@ export function ReceiptModal({
                       </div>
                     </>
                   ) : (
-                    <div className="flex justify-between text-[10.5px] text-green-700">
+                    <div className="flex justify-between text-[10.5px] font-black">
                       <span>STATUS:</span>
                       <span>LUNAS</span>
                     </div>

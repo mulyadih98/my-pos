@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,8 +20,6 @@ import {
   ArrowLeftRight,
   CreditCard,
   CheckCircle2,
-  AlertCircle,
-  Coins,
 } from "lucide-react";
 import { searchKasbonForPOS, bayarKasbonLangsung } from "@/app/actions/kasbon";
 import { toast } from "sonner";
@@ -49,18 +47,7 @@ export function BayarKasbonDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load initial list on open
-  useEffect(() => {
-    if (open) {
-      handleSearch("");
-      setJumlahBayar(0);
-      setReferensi("");
-      setCatatan("");
-      setSelectedKasbon(null);
-    }
-  }, [open]);
-
-  const handleSearch = async (q: string) => {
+  const handleSearch = useCallback(async (q: string) => {
     setSearchQuery(q);
     setIsLoading(true);
     try {
@@ -71,7 +58,18 @@ export function BayarKasbonDialog({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Load initial list on open
+  useEffect(() => {
+    if (open) {
+      handleSearch("");
+      setJumlahBayar(0);
+      setReferensi("");
+      setCatatan("");
+      setSelectedKasbon(null);
+    }
+  }, [open, handleSearch]);
 
   const handleSelect = (item: any) => {
     setSelectedKasbon(item);

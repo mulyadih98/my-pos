@@ -7,18 +7,12 @@ import {
   BookOpenCheck,
   User,
   Phone,
-  Calendar,
   Wallet,
-  Clock,
-  TrendingUp,
   AlertTriangle,
   CheckCircle2,
   ReceiptText,
   Search,
   MessageCircle,
-  ExternalLink,
-  ChevronDown,
-  ChevronRight,
   Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,14 +26,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BayarKasbonDialog } from "@/components/pos/bayar-kasbon-dialog";
 import { ReceiptModal, ReceiptData } from "@/components/receipt-modal";
