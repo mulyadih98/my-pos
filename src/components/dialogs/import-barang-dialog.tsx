@@ -9,7 +9,6 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -365,9 +364,9 @@ export function ImportBarangDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="!max-w-none w-[96vw] lg:w-[85vw] max-h-[92vh] h-[92vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="!max-w-none w-[96vw] lg:w-[85vw] max-h-[90vh] h-[90vh] flex flex-col p-0 overflow-hidden box-border">
         {/* HEADER */}
-        <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0">
+        <DialogHeader className="px-4 sm:px-6 py-3 sm:py-3.5 border-b shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
@@ -400,7 +399,7 @@ export function ImportBarangDialog() {
         </DialogHeader>
 
         {/* BODY */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4">
           {/* Petunjuk Ringkas */}
           <div className="p-3 bg-muted/30 border rounded-lg text-xs space-y-1 text-muted-foreground">
             <p className="font-semibold text-foreground flex items-center gap-1.5">
@@ -633,7 +632,7 @@ export function ImportBarangDialog() {
         </div>
 
         {/* FOOTER */}
-        <DialogFooter className="px-4 sm:px-6 py-3 border-t shrink-0 flex items-center justify-between gap-2 bg-muted/10">
+        <div className="px-4 sm:px-6 py-3.5 border-t shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/20 z-20">
           <div className="text-xs text-muted-foreground hidden sm:block">
             {parsedRows.length > 0 && (
               <span>
@@ -641,8 +640,9 @@ export function ImportBarangDialog() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             <Button
+              type="button"
               variant="outline"
               onClick={() => setOpen(false)}
               disabled={isProcessing}
@@ -650,6 +650,7 @@ export function ImportBarangDialog() {
               Batal
             </Button>
             <Button
+              type="button"
               variant="default"
               disabled={validCount === 0 || isProcessing}
               onClick={handleStartImport}
@@ -668,7 +669,7 @@ export function ImportBarangDialog() {
               )}
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

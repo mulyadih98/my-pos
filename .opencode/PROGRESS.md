@@ -78,6 +78,7 @@
   - **Download Template Spreadsheet:** Berkas template Excel (`public/template_import_barang.xlsx`) dan CSV (`public/template_import_barang.csv`) berisi 10 contoh variasi produk ritel nyata siap unduh langsung dari modal impor maupun URL web publik.
   - **Pratinjau Live & Validasi:** Parsing file `.xlsx`/`.csv` via library `xlsx`, validasi nama & harga, penanganan auto-barcode unik jika kosong, dan opsi duplikat (update stok/harga vs lewati).
   - **Batch Chunking Server Action:** Fungsi `importBarangBatch` memproses 20 barang/batch dengan auto-register Kategori & Satuan baru tanpa membebani connection pooler Supabase.
+  - **Layout Modal Footer:** Perbaikan posisi tombol aksi Import dan Batal pada modal impor barang agar tidak terpotong/tenggelam pada layar dengan container footer `shrink-0` dan `min-h-0` yang presisi.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---
