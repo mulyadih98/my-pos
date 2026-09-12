@@ -65,6 +65,8 @@ import { ReceiptModal, ReceiptData } from "@/components/receipt-modal";
 import { KeyboardGuideDialog } from "@/components/keyboard-guide-dialog";
 import { CameraScannerDialog } from "@/components/pos/camera-scanner-dialog";
 import { BayarKasbonDialog } from "@/components/pos/bayar-kasbon-dialog";
+import { ItemQuantityDialog } from "@/components/pos/item-quantity-dialog";
+import { getLocalStoreSettings } from "@/lib/settings-client";
 import { generateId } from "@/lib/utils";
 import { UserSession } from "@/lib/auth";
 
@@ -188,6 +190,12 @@ export function POSClient({
   const [isBayarKasbonOpen, setIsBayarKasbonOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
+  // Dialog Pilihan Kuantitas & Satuan Barang
+  const [qtyDialogProduct, setQtyDialogProduct] = useState<Product | null>(null);
+  const [qtyDialogVarianIndex, setQtyDialogVarianIndex] = useState<number>(0);
+  const [qtyDialogInitialQty, setQtyDialogInitialQty] = useState<number>(1);
+  const [isQtyDialogOpen, setIsQtyDialogOpen] = useState<boolean>(false);
 
   // DOM Refs for Keyboard-First navigation
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -479,6 +487,60 @@ export function POSClient({
     },
     [cart, priceType, products, initialPromos]
   );
+
+  // Hitung jumlah pcs barang yang sedang aktif di dialog dan sudah ada di keranjang
+  const qtyDialogAlreadyInCartPcs = useMemo(() => {
+    if (!qtyDialogProduct) return 0;
+    return cart
+      .filter((item) => item.barangId === qtyDialogProduct.id)
+      .reduce((sum, item) => sum + item.qty * (item.konversi || 1), 0);
+  }, [cart, qtyDialogProduct]);
+
+  // Buka dialog pemilihan kuantitas & satuan barang
+  const openItemQtyDialog = useCallback(
+    (product: Product, varianIndex: number = 0, initialQty: number = 1) => {
+      const storeSettings = getLocalStoreSettings();
+      const shouldShowDialog = storeSettings.confirmItemQtyDialog !== false;
+
+      if (!shouldShowDialog) {
+        addToCart(product, varianIndex, false, initialQty);
+        return;
+      }
+
+      setQtyDialogProduct(product);
+      setQtyDialogVarianIndex(
+        varianIndex >= 0 && varianIndex < product.varians.length ? varianIndex : 0
+      );
+      setQtyDialogInitialQty(Math.max(1, initialQty || 1));
+      setIsQtyDialogOpen(true);
+    },
+    [addToCart]
+  );
+
+  const handleConfirmItemQty = useCallback(
+    (product: Product, varianIndex: number, confirmedQty: number) => {
+      addToCart(product, varianIndex, false, confirmedQty);
+      setIsQtyDialogOpen(false);
+      setQtyDialogProduct(null);
+      setSearch("");
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }, 60);
+    },
+    [addToCart]
+  );
+
+  const handleCloseItemQtyDialog = useCallback((openState: boolean) => {
+    setIsQtyDialogOpen(openState);
+    if (!openState) {
+      setQtyDialogProduct(null);
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }, 60);
+    }
+  }, []);
 
   // Subtotal kotor sebelum diskon transaksi
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + item.harga * item.qty, 0), [cart]);
@@ -783,7 +845,7 @@ export function POSClient({
   // Handle Global Mouseless Hotkeys (F1 - F10, Esc, Alt+1..5, Alt+H, Alt+R, Alt+B)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (isReceiptOpen || isBayarKasbonOpen) return;
+      if (isReceiptOpen || isBayarKasbonOpen || isQtyDialogOpen) return;
 
       if (e.altKey) {
         if (e.key === "1") {
@@ -936,14 +998,14 @@ export function POSClient({
         (p) => p.kode.toLowerCase() === query.toLowerCase()
       );
       if (exactMatch) {
-        addToCart(exactMatch, 0, false, multiplier);
+        openItemQtyDialog(exactMatch, 0, multiplier);
         return;
       }
 
       // 2. Selected index from dropdown (Navigasi Panah Keyboard / Item Teratas)
       if (filteredProducts.length > 0) {
         const targetProduct = filteredProducts[selectedIndex] || filteredProducts[0];
-        addToCart(targetProduct, 0, false, multiplier);
+        openItemQtyDialog(targetProduct, 0, multiplier);
         return;
       }
 
@@ -963,7 +1025,8 @@ export function POSClient({
     );
 
     if (exactMatch) {
-      return addToCart(exactMatch, 0, false, 1);
+      openItemQtyDialog(exactMatch, 0, 1);
+      return true;
     }
 
     // 2. Jika kode tidak cocok persis, cari yang mengandung kode
@@ -974,7 +1037,8 @@ export function POSClient({
     );
 
     if (partialMatch) {
-      return addToCart(partialMatch, 0, false, 1);
+      openItemQtyDialog(partialMatch, 0, 1);
+      return true;
     }
 
     playErrorSound();
@@ -1306,7 +1370,7 @@ export function POSClient({
                           onMouseEnter={() => setSelectedIndex(idx)}
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            addToCart(p, 0, false, parsedSearch.multiplier);
+                            openItemQtyDialog(p, 0, parsedSearch.multiplier);
                           }}
                           className={`p-3 flex items-center justify-between transition-colors cursor-pointer select-none ${
                             isSelected
@@ -1343,7 +1407,7 @@ export function POSClient({
                                   onMouseDown={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    addToCart(p, vIdx, false, parsedSearch.multiplier);
+                                    openItemQtyDialog(p, vIdx, parsedSearch.multiplier);
                                   }}
                                   className="h-8 text-xs px-2.5 flex flex-col items-end py-1 font-semibold"
                                 >
@@ -2353,6 +2417,18 @@ export function POSClient({
         open={isCameraOpen}
         onOpenChange={setIsCameraOpen}
         onScan={handleCameraScan}
+      />
+
+      {/* Dialog Pemilihan Kuantitas & Satuan Barang */}
+      <ItemQuantityDialog
+        open={isQtyDialogOpen}
+        onOpenChange={handleCloseItemQtyDialog}
+        product={qtyDialogProduct}
+        initialVarianIndex={qtyDialogVarianIndex}
+        initialQty={qtyDialogInitialQty}
+        priceType={priceType}
+        alreadyInCartPcs={qtyDialogAlreadyInCartPcs}
+        onConfirm={handleConfirmItemQty}
       />
 
       {/* Dialog Panduan Shortcut Keyboard */}

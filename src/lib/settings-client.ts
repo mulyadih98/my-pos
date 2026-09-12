@@ -18,6 +18,7 @@ export function getLocalStoreSettings(defaultFromDb?: StoreSettings): StoreSetti
         footerPesan: parsed.footerPesan ?? defaultFromDb?.footerPesan ?? DEFAULT_STORE_SETTINGS.footerPesan,
         ukuranKertas: parsed.ukuranKertas || defaultFromDb?.ukuranKertas || DEFAULT_STORE_SETTINGS.ukuranKertas,
         itemLineSpacing: parsed.itemLineSpacing || defaultFromDb?.itemLineSpacing || DEFAULT_STORE_SETTINGS.itemLineSpacing,
+        confirmItemQtyDialog: parsed.confirmItemQtyDialog !== undefined ? parsed.confirmItemQtyDialog : (defaultFromDb?.confirmItemQtyDialog !== undefined ? defaultFromDb.confirmItemQtyDialog : DEFAULT_STORE_SETTINGS.confirmItemQtyDialog),
         uiFontSize: parsed.uiFontSize || defaultFromDb?.uiFontSize || DEFAULT_STORE_SETTINGS.uiFontSize,
         uiFontWeight: parsed.uiFontWeight || defaultFromDb?.uiFontWeight || DEFAULT_STORE_SETTINGS.uiFontWeight,
         uiFontFamily: parsed.uiFontFamily || defaultFromDb?.uiFontFamily || DEFAULT_STORE_SETTINGS.uiFontFamily,

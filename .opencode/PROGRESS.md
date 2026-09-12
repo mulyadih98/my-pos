@@ -100,6 +100,11 @@
   - **Validasi Stok Sisi Klien:** Pengecekan sisa stok fisik secara presisi pada `addToCart`, tombol step `updateQty (+/-)`, dan input angka langsung `setQtyDirect` dengan notifikasi peringatan sebelum transaksi dikirim ke server.
   - **Sinkronisasi Stok Kasir Instan:** Pengurangan stok lokal seketika pada state keranjang kasir setelah transaksi sukses tanpa perlu refresh halaman manual.
   - **Optimasi Form Kasbon & Pinned Action Button:** Membuang dead padding dan gap bawaan Card, menyesuaikan viewport height dinamis `100dvh`, memperjelas ringkasan Sisa Hutang Kasbon vs DP pada footer, dan memberikan feedback interaktif jika nama pelanggan kasbon belum diisi.
+- [x] **Dialog Pilihan Satuan & Input Kuantitas (Keyboard-First POS Item Modal):**
+  - **Modal Pemilihan Unit & Qty Sebelum Masuk Keranjang:** Komponen `ItemQuantityDialog` (`src/components/pos/item-quantity-dialog.tsx`) aktif saat kasir menekan `Enter` di pencarian barang/barcode atau klik produk.
+  - **100% Mouseless & Ergonomis:** Pilihan satuan via shortcut `[Alt+1..9]` atau panah `[←/→]`, input qty auto-focus & auto-select (cukup ketik angka lalu tekan `Enter`), tombol step `↑/↓` dan `+/-`, quick chips `[+1] [+2] [+5] [+10] [Maks]`.
+  - **Validasi Stok Real-Time & Subtotal Live:** Perhitungan subtotal dan konversi satuan fisik otomatis memeriksa stok sisa di database dan barang yang sudah ada di keranjang.
+  - **Opsi Pengaturan:** Pengaturan saklar `confirmItemQtyDialog` di `/dashboard/pengaturan` untuk mengaktifkan/menonaktifkan dialog sesuai preferensi operasional toko.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

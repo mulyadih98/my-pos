@@ -18,7 +18,8 @@ export function KeyboardGuideDialog({ open, onOpenChange }: KeyboardGuideDialogP
   const shortcuts = [
     { key: "10*nama", desc: "Format Perkalian Qty saat cari produk (Contoh: 10*kopi / 5*apel)" },
     { key: "↑ / ↓", desc: "Navigasi panah keyboard memilih daftar produk di pencarian" },
-    { key: "Enter", desc: "Masukkan produk terpilih / Konfirmasi" },
+    { key: "Enter", desc: "Buka dialog pilih satuan & kuantitas / Masukkan ke keranjang" },
+    { key: "Alt + 1..9", desc: "Pilih satuan / unit produk pada dialog kuantitas barang" },
     { key: "F1", desc: "Buka / Tutup panduan shortcut bantuan ini" },
     { key: "F2", desc: "Fokus ke kolom Cari / Scan Barcode Produk" },
     { key: "F3", desc: "Fokus ke kolom Cari Member / Pelanggan" },

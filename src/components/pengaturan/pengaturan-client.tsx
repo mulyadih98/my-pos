@@ -37,6 +37,7 @@ import {
   Server,
   FileText,
   Type,
+  ShoppingCart,
 } from "lucide-react";
 
 export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSettings }) {
@@ -404,6 +405,69 @@ export function PengaturanClient({ defaultSettings }: { defaultSettings: StoreSe
                 💡 <strong>Sistem Otomatis:</strong> Tombol kasir selalu memprioritaskan Direct Printer.
                 Bila printer direct tidak tersambung, sistem otomatis beralih mencetak lewat driver Windows (kabel USB) secara bersih tanpa URL browser.
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card: Alur Input Barang Kasir */}
+        <Card>
+          <CardHeader className="border-b pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-primary" /> Alur Input Barang Kasir
+              </CardTitle>
+              <Badge variant="secondary" className="text-[10px]">
+                Khusus Perangkat Ini
+              </Badge>
+            </div>
+            <CardDescription>
+              Tentukan bagaimana sistem menangani pemilihan barang saat kasir mengetik nama atau scan barcode.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label className="font-semibold text-sm">Dialog Pilihan Satuan & Kuantitas Barang</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, confirmItemQtyDialog: true })}
+                  className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    settings.confirmItemQtyDialog !== false
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="font-bold flex items-center gap-1.5 text-xs">
+                    <span>Tampilkan Modal (Rekomendasi)</span>
+                    {settings.confirmItemQtyDialog !== false && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Munculkan modal untuk memilih satuan (Pcs/Dus) dan input kuantitas sebelum masuk keranjang.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, confirmItemQtyDialog: false })}
+                  className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    settings.confirmItemQtyDialog === false
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="font-bold flex items-center gap-1.5 text-xs">
+                    <span>Langsung Masuk (1 pcs)</span>
+                    {settings.confirmItemQtyDialog === false && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Langsung tambahkan 1 pcs ke keranjang belanja tanpa menampilkan dialog popup.
+                  </p>
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>

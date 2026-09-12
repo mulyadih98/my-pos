@@ -6,6 +6,8 @@ export interface StoreSettings {
   ukuranKertas: "58mm" | "80mm";
   // Pengaturan Jarak Baris Item Struk Belanja
   itemLineSpacing?: "compact" | "normal" | "loose";
+  // Dialog Pilihan Kuantitas & Satuan saat Input Barang
+  confirmItemQtyDialog?: boolean;
   // Pengaturan Layar Kasir (UI) Lokal Perangkat
   uiFontSize?: "sm" | "md" | "lg" | "xl";
   uiFontWeight?: "normal" | "medium" | "bold";
@@ -19,6 +21,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   footerPesan: "Terima Kasih Atas Kunjungan Anda\nBarang yang sudah dibeli tidak dapat ditukar",
   ukuranKertas: "58mm",
   itemLineSpacing: "normal",
+  confirmItemQtyDialog: true,
   uiFontSize: "md",
   uiFontWeight: "normal",
   uiFontFamily: "sans",
