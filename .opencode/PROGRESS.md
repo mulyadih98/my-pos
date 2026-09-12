@@ -75,7 +75,7 @@
   - Penanganan error aman dengan notifikasi toast (`sonner`) pada `DeleteBarangDialog` untuk mencegah crash Unhandled Server Error Boundary.
 - [x] **Import Barang Masal via Excel / CSV & Supplier Opsional:**
   - **Supplier Fleksibel:** Kolom `supplierId` pada model `Barang` dibuat nullable (`String?`), memungkinkan produk disimpan tanpa supplier (tampil strip `-`).
-  - **Download Template Spreadsheet:** Unduh template Excel (`.xlsx`) dan CSV (`.csv`) dengan contoh baris dan lebar kolom rapi langsung dari modal.
+  - **Download Template Spreadsheet:** Berkas template Excel (`public/template_import_barang.xlsx`) dan CSV (`public/template_import_barang.csv`) berisi 10 contoh variasi produk ritel nyata siap unduh langsung dari modal impor maupun URL web publik.
   - **Pratinjau Live & Validasi:** Parsing file `.xlsx`/`.csv` via library `xlsx`, validasi nama & harga, penanganan auto-barcode unik jika kosong, dan opsi duplikat (update stok/harga vs lewati).
   - **Batch Chunking Server Action:** Fungsi `importBarangBatch` memproses 20 barang/batch dengan auto-register Kategori & Satuan baru tanpa membebani connection pooler Supabase.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.

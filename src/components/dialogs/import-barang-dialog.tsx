@@ -381,22 +381,20 @@ export function ImportBarangDialog() {
 
             {/* Tombol Unduh Template */}
             <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDownloadTemplate("xlsx")}
-                className="h-8 text-xs gap-1.5 border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              <a
+                href="/template_import_barang.xlsx"
+                download="template_import_barang.xlsx"
+                className="inline-flex items-center justify-center rounded-md text-xs font-semibold h-8 px-3 gap-1.5 border border-emerald-600/40 text-emerald-700 dark:text-emerald-400 bg-background hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shadow-2xs"
               >
                 <Download className="w-3.5 h-3.5" /> Template Excel (.xlsx)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDownloadTemplate("csv")}
-                className="h-8 text-xs gap-1.5"
+              </a>
+              <a
+                href="/template_import_barang.csv"
+                download="template_import_barang.csv"
+                className="inline-flex items-center justify-center rounded-md text-xs font-semibold h-8 px-3 gap-1.5 border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors shadow-2xs"
               >
                 <Download className="w-3.5 h-3.5" /> Template CSV
-              </Button>
+              </a>
             </div>
           </div>
         </DialogHeader>
