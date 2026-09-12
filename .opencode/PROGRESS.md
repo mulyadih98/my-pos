@@ -6,8 +6,8 @@
 
 ## 1. Ringkasan Status Proyek Saat Ini
 - **Aplikasi:** My POS (Point of Sale & Manajemen Inventori Toko)
-- **Tech Stack:** Next.js 16.2.4 (App Router), React 19.2.4, Prisma 7.8.0, MariaDB 10.11 (database `my_pos`).
-- **Database Status:** Aktif & sinkron (13 tabel).
+- **Tech Stack:** Next.js 16.2.4 (App Router), React 19.2.4, Prisma 7.8.0, PostgreSQL (Supabase Cloud via IPv4 Pooler & `@prisma/adapter-pg`).
+- **Database Status:** Aktif, sinkron & terhubung ke Supabase Cloud (18 tabel).
 - **Server Port:** 3000 (`npm run dev`).
 - **Git Remote:** `git@github.com:mulyadih98/my-pos.git` (branch `main`).
 
@@ -63,6 +63,10 @@
 - [x] **Pencatatan Biaya Operasional Toko (`/dashboard/operasional`):**
   - **Manajemen Pengeluaran Toko:** Input pengeluaran operasional (Listrik/Air, Gaji, Sewa, Perlengkapan/Kresek, Transport, Pemeliharaan, dll) metode tunai/transfer.
   - **Integrasi Penuh ke Laba Rugi (`/dashboard/laba-rugi`):** Pengeluaran operasional otomatis memotong laba kotor untuk menghitung Laba Bersih Riil Toko (*Net Profit*), dilengkapi kartu ringkasan KPI dan tabel breakdown beban usaha.
+- [x] **Migrasi Database ke Supabase Cloud PostgreSQL:**
+  - **Provider & Adapter Modern:** Migrasi skema Prisma ke `postgresql` dengan `@prisma/adapter-pg` dan connection pooler.
+  - **Dukungan Pooler IPv4:** Konfigurasi koneksi pooler Supabase (`aws-1-ap-southeast-2.pooler.supabase.com`) port 6543 (transaction mode via pgbouncer) dan port 5432 (session mode DDL/seeding) untuk mengatasi kendala IPv6 direct unreachable pada server lokal.
+  - **Seeding & Sinkronisasi:** 18 tabel model dan data master default (user owner/kasir, satuan, kategori, supplier, member, barang) terverifikasi aktif di Supabase.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---
