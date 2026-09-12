@@ -15,7 +15,7 @@ export default async function TransaksiPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-1.5 sm:gap-2 p-1.5 sm:p-2.5 lg:h-[calc(100vh-3.75rem)] lg:overflow-hidden min-h-screen lg:min-h-0">
+    <div className="flex flex-col gap-1 sm:gap-1.5 p-1 sm:p-2 lg:h-[calc(100dvh-5.5rem)] lg:max-h-[calc(100vh-5.5rem)] lg:overflow-hidden min-h-screen lg:min-h-0">
       <div className="hidden sm:flex lg:hidden items-center justify-between shrink-0">
         <h1 className="text-lg sm:text-xl font-bold tracking-tight">Transaksi Kasir</h1>
       </div>

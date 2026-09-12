@@ -1746,7 +1746,7 @@ export function POSClient({
         </div>
 
         {/* Unified Payment Card with Scrollable Body & Pinned Sticky Footer */}
-        <Card className="flex-1 min-h-0 flex flex-col overflow-hidden shadow-sm border bg-card">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
           {/* Header */}
           <div className="px-3.5 py-2 border-b shrink-0 flex items-center justify-between bg-muted/20">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -2176,29 +2176,41 @@ export function POSClient({
           </div>
 
           {/* Bottom Pinned Footer: Total Tagihan & PROSES BAYAR */}
-          <div className="px-3.5 py-2.5 border-t shrink-0 bg-card/95 backdrop-blur z-20 space-y-2">
+          <div className="px-3.5 py-2 border-t shrink-0 bg-card/95 backdrop-blur z-20 space-y-1.5">
             <div className="flex justify-between items-baseline px-0.5">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block leading-none">
-                  Total Tagihan:
+                  {metodePembayaran === "HUTANG"
+                    ? kasbonDp > 0
+                      ? "Sisa Hutang Kasbon:"
+                      : "Total Kasbon:"
+                    : "Total Tagihan:"}
                 </span>
-                {diskonNominal > 0 && (
+                {metodePembayaran === "HUTANG" && kasbonDp > 0 ? (
+                  <span className="text-[10.5px] text-emerald-600 font-bold block mt-0.5">
+                    DP Dibayar: Rp {kasbonDp.toLocaleString("id-ID")}
+                  </span>
+                ) : diskonNominal > 0 ? (
                   <span className="text-[10px] text-red-500 font-semibold block mt-0.5">
                     Hemat Rp {diskonNominal.toLocaleString("id-ID")}
                   </span>
-                )}
+                ) : null}
               </div>
               <span className="text-2xl sm:text-3xl font-black text-primary font-mono tracking-tight">
-                Rp {total.toLocaleString("id-ID")}
+                Rp {
+                  (metodePembayaran === "HUTANG" && kasbonDp > 0
+                    ? Math.max(0, total - kasbonDp)
+                    : total
+                  ).toLocaleString("id-ID")
+                }
               </span>
             </div>
 
             <Button
-              className="w-full h-11 sm:h-12 text-sm sm:text-base font-bold gap-2 shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="w-full h-11 sm:h-12 text-sm sm:text-base font-bold gap-2 shadow-md bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer"
               disabled={
                 cart.length === 0 ||
                 (metodePembayaran === "TUNAI" && bayar < total) ||
-                (metodePembayaran === "HUTANG" && !(member?.nama || kasbonNama).trim()) ||
                 isSubmitting
               }
               onClick={handleCheckout}
@@ -2210,8 +2222,14 @@ export function POSClient({
                 ? "SIMPAN TRANSAKSI KASBON [F10]"
                 : "PROSES BAYAR [F10]"}
             </Button>
+
+            {metodePembayaran === "HUTANG" && !(member?.nama || kasbonNama).trim() && (
+              <p className="text-[10.5px] text-destructive text-center font-semibold animate-pulse">
+                * Masukkan nama pelanggan kasbon di atas
+              </p>
+            )}
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Floating Bottom Bar for Mobile & Tablet (< 1024px) when on Catalog tab */}

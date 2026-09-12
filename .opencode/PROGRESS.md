@@ -99,6 +99,7 @@
   - **Penanganan Error Server Action Bersih:** Server action `createTransaksi` menangani pembatalan transaksi dengan respons aman `{ success: false, error }` (bukan unhandled throw), mencegah error HTTP 500 pada Vercel.
   - **Validasi Stok Sisi Klien:** Pengecekan sisa stok fisik secara presisi pada `addToCart`, tombol step `updateQty (+/-)`, dan input angka langsung `setQtyDirect` dengan notifikasi peringatan sebelum transaksi dikirim ke server.
   - **Sinkronisasi Stok Kasir Instan:** Pengurangan stok lokal seketika pada state keranjang kasir setelah transaksi sukses tanpa perlu refresh halaman manual.
+  - **Optimasi Form Kasbon & Pinned Action Button:** Membuang dead padding dan gap bawaan Card, menyesuaikan viewport height dinamis `100dvh`, memperjelas ringkasan Sisa Hutang Kasbon vs DP pada footer, dan memberikan feedback interaktif jika nama pelanggan kasbon belum diisi.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---
