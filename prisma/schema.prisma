@@ -182,11 +182,11 @@ model Promo {
   tipe String @default("BUY_X_GET_Y")
 
   barangSyaratId String
-  barangSyarat   Barang @relation("PromoBarangSyarat", fields: [barangSyaratId], references: [id])
+  barangSyarat   Barang @relation("PromoBarangSyarat", fields: [barangSyaratId], references: [id], onDelete: Cascade)
   minBeliQty     Int    @default(1)
 
   barangHadiahId String
-  barangHadiah   Barang @relation("PromoBarangHadiah", fields: [barangHadiahId], references: [id])
+  barangHadiah   Barang @relation("PromoBarangHadiah", fields: [barangHadiahId], references: [id], onDelete: Cascade)
   hadiahQty      Int    @default(1)
 
   tanggalMulai   DateTime

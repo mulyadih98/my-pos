@@ -70,6 +70,9 @@
 - [x] **Fix Vercel Deployment & NPM Registry Lockfile:**
   - Pembersihan URL mirror internal Tencent Cloud (`mirrors.tencentyun.com`) pada `package-lock.json` menjadi URL resmi publik `registry.npmjs.org`.
   - Penambahan file `.npmrc` dengan `registry=https://registry.npmjs.org/` agar instalasi dependensi di cloud CI/CD seperti Vercel berjalan lancar tanpa error ENETUNREACH/ENOTFOUND.
+- [x] **Fix Penanganan Hapus Barang & Relasi Promo:**
+  - Pembersihan relasi promo otomatis (`onDelete: Cascade` pada model Promo) dan pengecekan spesifik relasi transaksi/pembelian/opname sebelum menghapus barang agar tidak memicu pelanggaran Foreign Key.
+  - Penanganan error aman dengan notifikasi toast (`sonner`) pada `DeleteBarangDialog` untuk mencegah crash Unhandled Server Error Boundary.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

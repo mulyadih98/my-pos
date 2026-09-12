@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { deleteBarang } from "@/app/actions/barang";
+import { toast } from "sonner";
 
 export function DeleteBarangDialog({ id, nama }: { id: string; nama: string }) {
   const [open, setOpen] = useState(false);
@@ -18,8 +19,13 @@ export function DeleteBarangDialog({ id, nama }: { id: string; nama: string }) {
 
   const handleDelete = () => {
     startTransition(async () => {
-      await deleteBarang(id);
-      setOpen(false);
+      try {
+        await deleteBarang(id);
+        toast.success(`Barang "${nama}" berhasil dihapus.`);
+        setOpen(false);
+      } catch (err: any) {
+        toast.error(err.message || "Gagal menghapus barang.");
+      }
     });
   };
 

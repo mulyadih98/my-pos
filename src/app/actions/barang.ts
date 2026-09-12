@@ -56,22 +56,58 @@ export async function createBarangWithVarian(payload: {
 }
 
 /**
- * Menghapus barang dan variannya
+ * Menghapus barang dan variannya secara aman
  */
 export async function deleteBarang(id: string) {
-  try {
-    await db.$transaction(async (tx) => {
-      await tx.varianBarang.deleteMany({
-        where: { barangId: id },
-      });
-      await tx.barang.delete({
-        where: { id },
-      });
-    });
-    revalidatePath("/dashboard/barang");
-  } catch (error) {
-    throw new Error("Barang tidak bisa dihapus karena sudah memiliki riwayat transaksi.");
+  // 1. Cek apakah barang memiliki riwayat transaksi penjualan
+  const txCount = await db.itemTransaksi.count({
+    where: { barangId: id },
+  });
+  if (txCount > 0) {
+    throw new Error(
+      "Barang tidak bisa dihapus karena sudah memiliki riwayat transaksi penjualan. Anda dapat mengubah stoknya menjadi 0 jika tidak lagi dijual."
+    );
   }
+
+  // 2. Cek apakah ada riwayat faktur pembelian dari supplier
+  const pembelianCount = await db.itemPembelian.count({
+    where: { barangId: id },
+  });
+  if (pembelianCount > 0) {
+    throw new Error(
+      "Barang tidak bisa dihapus karena memiliki riwayat faktur pembelian supplier."
+    );
+  }
+
+  // 3. Cek apakah ada riwayat stok opname
+  const opnameCount = await db.itemStokOpname.count({
+    where: { barangId: id },
+  });
+  if (opnameCount > 0) {
+    throw new Error(
+      "Barang tidak bisa dihapus karena tercatat dalam dokumen riwayat stok opname."
+    );
+  }
+
+  // 4. Bersihkan program promo yang mengaitkan barang ini sebagai syarat atau hadiah
+  await db.promo.deleteMany({
+    where: {
+      OR: [{ barangSyaratId: id }, { barangHadiahId: id }],
+    },
+  });
+
+  // 5. Hapus varian dan master barang
+  await db.varianBarang.deleteMany({
+    where: { barangId: id },
+  });
+  await db.barang.delete({
+    where: { id },
+  });
+
+  revalidatePath("/dashboard/barang");
+  revalidatePath("/dashboard/transaksi");
+  revalidatePath("/dashboard/promo");
+  revalidatePath("/dashboard");
 }
 
 /**
