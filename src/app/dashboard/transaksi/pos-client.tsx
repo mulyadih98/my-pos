@@ -44,6 +44,9 @@ import {
   ArrowLeftRight,
   Wallet,
   Clock,
+  BookOpenCheck,
+  Calendar,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Dialog,
@@ -54,11 +57,13 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 import { createTransaksi } from "@/app/actions/transaksi";
+import { searchKasbonForPOS } from "@/app/actions/kasbon";
 import { toast } from "sonner";
 import { playScanBeep, playSuccessChime, playErrorSound } from "@/lib/sound";
 import { ReceiptModal, ReceiptData } from "@/components/receipt-modal";
 import { KeyboardGuideDialog } from "@/components/keyboard-guide-dialog";
 import { CameraScannerDialog } from "@/components/pos/camera-scanner-dialog";
+import { BayarKasbonDialog } from "@/components/pos/bayar-kasbon-dialog";
 import { generateId } from "@/lib/utils";
 
 interface Varian {
@@ -146,7 +151,7 @@ export function POSClient({
   const [member, setMember] = useState<Member | null>(null);
   const [priceType, setPriceType] = useState<"retail" | "member">("retail");
   const [bayar, setBayar] = useState<number>(0);
-  const [metodePembayaran, setMetodePembayaran] = useState<"TUNAI" | "QRIS" | "TRANSFER" | "DEBIT">("TUNAI");
+  const [metodePembayaran, setMetodePembayaran] = useState<"TUNAI" | "QRIS" | "TRANSFER" | "DEBIT" | "HUTANG">("TUNAI");
   const [referensiPembayaran, setReferensiPembayaran] = useState<string>("");
   const [discountType, setDiscountType] = useState<"persen" | "nominal">("persen");
   const [discountValue, setDiscountValue] = useState<number>(0);
@@ -157,9 +162,19 @@ export function POSClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileTab, setMobileTab] = useState<"catalog" | "cart">("catalog");
 
+  // Kasbon / Hutang States
+  const [kasbonNama, setKasbonNama] = useState<string>("");
+  const [kasbonTelepon, setKasbonTelepon] = useState<string>("");
+  const [kasbonDp, setKasbonDp] = useState<number>(0);
+  const [kasbonJatuhTempo, setKasbonJatuhTempo] = useState<string>("");
+  const [customerKasbon, setCustomerKasbon] = useState<any | null>(null);
+  const [isPotongKembalian, setIsPotongKembalian] = useState<boolean>(false);
+  const [potongKembalianJumlah, setPotongKembalianJumlah] = useState<number>(0);
+
   // Dialog States
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isBayarKasbonOpen, setIsBayarKasbonOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
@@ -186,6 +201,27 @@ export function POSClient({
     try {
       localStorage.setItem("mypos_held_orders", JSON.stringify(orders));
     } catch {}
+  };
+
+  // Cek apakah pelanggan memiliki akun kasbon dengan saldo aktif
+  const checkKasbonForCustomer = async (nama: string) => {
+    if (!nama || nama.trim().length === 0) {
+      setCustomerKasbon(null);
+      return;
+    }
+    try {
+      const list = await searchKasbonForPOS(nama.trim());
+      const matched = list.find(
+        (k: any) => k.namaPelanggan.toLowerCase() === nama.trim().toLowerCase()
+      );
+      if (matched && matched.saldoHutang > 0) {
+        setCustomerKasbon(matched);
+      } else {
+        setCustomerKasbon(null);
+      }
+    } catch {
+      setCustomerKasbon(null);
+    }
   };
 
   // Auto-scroll selected item into view when navigating with Arrow Up / Down
@@ -432,11 +468,23 @@ export function POSClient({
   // Total tagihan bersih setelah diskon
   const total = useMemo(() => Math.max(0, subtotal - diskonNominal), [subtotal, diskonNominal]);
 
-  // Kembalian
-  const kembali = useMemo(() => {
+  // Kembalian kotor dari pembayaran tunai
+  const kembalianBruto = useMemo(() => {
     if (metodePembayaran !== "TUNAI") return 0;
     return Math.max(0, bayar - total);
   }, [metodePembayaran, bayar, total]);
+
+  // Nominal potong kembalian yang efektif untuk cicil kasbon
+  const effectivePotongKembalian = useMemo(() => {
+    if (!isPotongKembalian || !customerKasbon || customerKasbon.saldoHutang <= 0) return 0;
+    return Math.min(kembalianBruto, customerKasbon.saldoHutang, Math.max(0, potongKembalianJumlah));
+  }, [isPotongKembalian, customerKasbon, kembalianBruto, potongKembalianJumlah]);
+
+  // Kembalian bersih tunai yang diserahkan ke pelanggan
+  const kembali = useMemo(() => {
+    if (metodePembayaran !== "TUNAI") return 0;
+    return Math.max(0, kembalianBruto - effectivePotongKembalian);
+  }, [metodePembayaran, kembalianBruto, effectivePotongKembalian]);
 
   // Set Uang Pas (Exact Cash)
   const setUangPas = useCallback(() => {
@@ -529,14 +577,35 @@ export function POSClient({
       return;
     }
 
-    const effectiveBayar = metodePembayaran === "TUNAI" ? bayar : total;
-    const effectiveKembali = metodePembayaran === "TUNAI" ? kembali : 0;
+    let effectiveBayar = 0;
+    let effectiveKembali = 0;
 
-    if (metodePembayaran === "TUNAI" && effectiveBayar < total) {
-      toast.error("Pembayaran tunai kurang dari total tagihan!");
-      playErrorSound();
-      bayarInputRef.current?.focus();
-      return;
+    if (metodePembayaran === "TUNAI") {
+      if (bayar < total) {
+        toast.error("Pembayaran tunai kurang dari total tagihan!");
+        playErrorSound();
+        bayarInputRef.current?.focus();
+        return;
+      }
+      effectiveBayar = bayar;
+      effectiveKembali = kembali;
+    } else if (metodePembayaran === "HUTANG") {
+      const namaPelangganFinal = (member?.nama || kasbonNama || "").trim();
+      if (!namaPelangganFinal) {
+        toast.error("Nama pelanggan wajib diisi untuk transaksi kasbon/hutang!");
+        playErrorSound();
+        return;
+      }
+      if (kasbonDp > total) {
+        toast.error("Uang muka (DP) tidak boleh melebihi total tagihan!");
+        playErrorSound();
+        return;
+      }
+      effectiveBayar = Math.max(0, kasbonDp);
+      effectiveKembali = 0;
+    } else {
+      effectiveBayar = total;
+      effectiveKembali = 0;
     }
 
     setIsSubmitting(true);
@@ -562,6 +631,16 @@ export function POSClient({
           isBonus: Boolean(item.isBonus),
           promoId: item.promoId,
         })),
+
+        // Integrasi Kasbon
+        kasbonNamaPelanggan: (member?.nama || kasbonNama || "").trim() || undefined,
+        kasbonTelepon: kasbonTelepon.trim() || undefined,
+        kasbonJatuhTempo: kasbonJatuhTempo || null,
+        potongKembalianKasbonId:
+          isPotongKembalian && effectivePotongKembalian > 0 && customerKasbon
+            ? customerKasbon.id
+            : undefined,
+        potongKembalianJumlah: effectivePotongKembalian,
       };
 
       const result = await createTransaksi(payload);
@@ -590,11 +669,28 @@ export function POSClient({
             isBonus: item.isBonus,
             bonusLabel: item.bonusLabel,
           })),
+
+          // Kasbon Struk Info
+          receiptType: "TRANSAKSI",
+          namaPelanggan:
+            result.kasbonInfo?.namaPelanggan || (member ? member.nama : kasbonNama) || null,
+          tambahHutang: result.kasbonInfo?.tambahHutang,
+          potongKembalian: result.kasbonInfo?.potongKembalian,
+          saldoHutangAkhir: result.kasbonInfo?.saldoAkhir,
+          jatuhTempo:
+            result.kasbonInfo?.jatuhTempo || (kasbonJatuhTempo ? new Date(kasbonJatuhTempo) : null),
         });
 
         setIsReceiptOpen(true);
         setCart([]);
         setBayar(0);
+        setKasbonDp(0);
+        setKasbonNama("");
+        setKasbonTelepon("");
+        setKasbonJatuhTempo("");
+        setIsPotongKembalian(false);
+        setPotongKembalianJumlah(0);
+        setCustomerKasbon(null);
         setReferensiPembayaran("");
         setDiscountValue(0);
         setCatatan("");
@@ -617,12 +713,19 @@ export function POSClient({
     kembali,
     catatan,
     member,
+    kasbonNama,
+    kasbonTelepon,
+    kasbonDp,
+    kasbonJatuhTempo,
+    isPotongKembalian,
+    effectivePotongKembalian,
+    customerKasbon,
   ]);
 
-  // Handle Global Mouseless Hotkeys (F1 - F10, Esc, Alt+1..4, Alt+H, Alt+R)
+  // Handle Global Mouseless Hotkeys (F1 - F10, Esc, Alt+1..5, Alt+H, Alt+R, Alt+B)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (isReceiptOpen) return;
+      if (isReceiptOpen || isBayarKasbonOpen) return;
 
       if (e.altKey) {
         if (e.key === "1") {
@@ -648,6 +751,12 @@ export function POSClient({
           setBayar(total);
           toast.info("Metode Pembayaran: DEBIT");
           return;
+        } else if (e.key === "5") {
+          e.preventDefault();
+          setMetodePembayaran("HUTANG");
+          setBayar(0);
+          toast.info("Metode Pembayaran: HUTANG (KASBON)");
+          return;
         } else if (e.key.toLowerCase() === "h") {
           e.preventDefault();
           handleHoldOrder();
@@ -655,6 +764,10 @@ export function POSClient({
         } else if (e.key.toLowerCase() === "r") {
           e.preventDefault();
           setIsRecallOpen(true);
+          return;
+        } else if (e.key.toLowerCase() === "b") {
+          e.preventDefault();
+          setIsBayarKasbonOpen(true);
           return;
         }
       }
@@ -941,6 +1054,9 @@ export function POSClient({
       setMember(found);
       setPriceType("member");
       setMemberSearch("");
+      setKasbonNama(found.nama);
+      setKasbonTelepon(found.telepon || "");
+      checkKasbonForCustomer(found.nama);
       playScanBeep();
       toast.success(`Member ditemukan: ${found.nama}`);
       searchInputRef.current?.focus();
@@ -953,6 +1069,11 @@ export function POSClient({
   const removeMember = () => {
     setMember(null);
     setPriceType("retail");
+    setCustomerKasbon(null);
+    setKasbonNama("");
+    setKasbonTelepon("");
+    setIsPotongKembalian(false);
+    setPotongKembalianJumlah(0);
     toast.info("Member dihapus, beralih ke harga retail");
   };
 
@@ -1010,6 +1131,16 @@ export function POSClient({
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsBayarKasbonOpen(true)}
+                className="h-8 text-xs gap-1 text-amber-600 border-amber-300 bg-amber-50/50 hover:bg-amber-100 dark:hover:bg-amber-950/40 px-2 sm:px-3 font-semibold shadow-xs"
+                title="Pembayaran Kasbon / Hutang Pelanggan (Alt + B)"
+              >
+                <BookOpenCheck className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Bayar Kasbon</span> <span className="hidden sm:inline font-mono">[Alt+B]</span>
+              </Button>
+
               <Link href="/dashboard/pengaturan">
                 <Button
                   variant="outline"
@@ -1471,6 +1602,9 @@ export function POSClient({
                           setMember(m);
                           setPriceType("member");
                           setMemberSearch("");
+                          setKasbonNama(m.nama);
+                          setKasbonTelepon(m.telepon || "");
+                          checkKasbonForCustomer(m.nama);
                           playScanBeep();
                           toast.success(`Member terpilih: ${m.nama}`);
                           searchInputRef.current?.focus();
@@ -1491,25 +1625,38 @@ export function POSClient({
                 )}
               </div>
             ) : (
-              <div className="flex items-center justify-between bg-background p-3 rounded-md border border-primary/50 shadow-sm animate-in fade-in zoom-in duration-200">
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <UserCheck className="w-5 h-5 text-primary" />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between bg-background p-3 rounded-md border border-primary/50 shadow-sm animate-in fade-in zoom-in duration-200">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <UserCheck className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm leading-tight">{member.nama}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{member.kode}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-sm leading-tight">{member.nama}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{member.kode}</p>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={removeMember}
+                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                    title="Hapus Member"
+                  >
+                    <XCircle className="w-5 h-5" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={removeMember}
-                  className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                  title="Hapus Member"
-                >
-                  <XCircle className="w-5 h-5" />
-                </Button>
+
+                {customerKasbon && customerKasbon.saldoHutang > 0 && (
+                  <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between text-xs">
+                    <span className="text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Saldo Kasbon Aktif:
+                    </span>
+                    <span className="font-mono font-black text-amber-600">
+                      Rp {customerKasbon.saldoHutang.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -1633,11 +1780,11 @@ export function POSClient({
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                 <span>Metode Pembayaran</span>
                 <span className="text-[10px] text-muted-foreground normal-case font-normal">
-                  [Alt+1..4]
+                  [Alt+1..5]
                 </span>
               </label>
-              <div className="grid grid-cols-4 gap-1.5 bg-muted/70 p-1 rounded-xl border">
-                {(["TUNAI", "QRIS", "TRANSFER", "DEBIT"] as const).map((method) => {
+              <div className="grid grid-cols-5 gap-1 bg-muted/70 p-1 rounded-xl border">
+                {(["TUNAI", "QRIS", "TRANSFER", "DEBIT", "HUTANG"] as const).map((method) => {
                   const isActive = metodePembayaran === method;
                   return (
                     <button
@@ -1645,11 +1792,13 @@ export function POSClient({
                       type="button"
                       onClick={() => {
                         setMetodePembayaran(method);
-                        if (method !== "TUNAI") {
+                        if (method !== "TUNAI" && method !== "HUTANG") {
                           setBayar(total);
+                        } else if (method === "HUTANG") {
+                          setBayar(0);
                         }
                       }}
-                      className={`py-1.5 px-1 text-center rounded-lg font-bold text-[11px] transition-all flex flex-col items-center justify-center gap-1 ${
+                      className={`py-1.5 px-0.5 text-center rounded-lg font-bold text-[10.5px] transition-all flex flex-col items-center justify-center gap-1 ${
                         isActive
                           ? "bg-background text-primary shadow-xs border border-primary/40"
                           : "text-muted-foreground hover:text-foreground hover:bg-background/40"
@@ -1659,6 +1808,7 @@ export function POSClient({
                       {method === "QRIS" && <QrCode className="w-3.5 h-3.5" />}
                       {method === "TRANSFER" && <ArrowLeftRight className="w-3.5 h-3.5" />}
                       {method === "DEBIT" && <CreditCard className="w-3.5 h-3.5" />}
+                      {method === "HUTANG" && <BookOpenCheck className="w-3.5 h-3.5 text-amber-500" />}
                       <span>{method}</span>
                     </button>
                   );
@@ -1667,8 +1817,113 @@ export function POSClient({
             </div>
 
             {/* Input Pembayaran Sesuai Metode */}
-            {metodePembayaran === "TUNAI" ? (
-              <div className="space-y-2">
+            {metodePembayaran === "HUTANG" ? (
+              <div className="space-y-3 bg-amber-500/5 p-3.5 rounded-xl border border-amber-500/20">
+                <div className="flex items-center justify-between text-xs border-b pb-2">
+                  <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                    <BookOpenCheck className="w-4 h-4 text-amber-500" /> Transaksi Kasbon / Hutang
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">Member / Non-Member</span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-foreground flex items-center justify-between">
+                    <span>Nama Pelanggan <span className="text-destructive">*</span></span>
+                    {member && <span className="text-[10px] text-primary font-normal">Dari Member: {member.nama}</span>}
+                  </label>
+                  <Input
+                    placeholder="Ketik nama peminjam (Contoh: Pak Budi RT 02)..."
+                    value={member?.nama || kasbonNama}
+                    onChange={(e) => {
+                      setKasbonNama(e.target.value);
+                      checkKasbonForCustomer(e.target.value);
+                    }}
+                    className="h-9 text-xs bg-background"
+                    disabled={Boolean(member)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      No. HP / WA (Opsional):
+                    </label>
+                    <Input
+                      placeholder="08xxxxxxxxxx"
+                      value={member?.telepon || kasbonTelepon}
+                      onChange={(e) => setKasbonTelepon(e.target.value)}
+                      className="h-8 text-xs bg-background"
+                      disabled={Boolean(member?.telepon)}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
+                      <span>Jatuh Tempo (Opsional):</span>
+                      {kasbonJatuhTempo && (
+                        <button
+                          type="button"
+                          onClick={() => setKasbonJatuhTempo("")}
+                          className="text-[9.5px] text-destructive hover:underline"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </label>
+                    <Input
+                      type="date"
+                      value={kasbonJatuhTempo}
+                      onChange={(e) => setKasbonJatuhTempo(e.target.value)}
+                      className="h-8 text-xs bg-background font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
+                    <span>Uang Muka / DP Dibayar (Opsional):</span>
+                    <span className="text-[10px] text-muted-foreground">Rp 0 jika hutang penuh</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
+                      Rp
+                    </span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max={total}
+                      value={kasbonDp || ""}
+                      onChange={(e) => setKasbonDp(Math.min(total, Math.max(0, Number(e.target.value))))}
+                      placeholder="0"
+                      className="pl-8 h-9 text-xs font-bold font-mono bg-background"
+                    />
+                  </div>
+                </div>
+
+                {/* Kalkulasi Kasbon Baru */}
+                <div className="p-2.5 bg-background rounded-lg border space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Tagihan Belanja:</span>
+                    <span className="font-mono font-semibold">Rp {total.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Uang Muka (DP):</span>
+                    <span className="font-mono font-semibold">Rp {kasbonDp.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between font-bold border-t pt-1 text-amber-700 dark:text-amber-400">
+                    <span>Tambah Saldo Hutang:</span>
+                    <span className="font-mono">+Rp {Math.max(0, total - kasbonDp).toLocaleString("id-ID")}</span>
+                  </div>
+                  {customerKasbon && customerKasbon.saldoHutang > 0 && (
+                    <div className="flex justify-between text-[11px] text-muted-foreground pt-0.5">
+                      <span>Saldo Hutang Saat Ini:</span>
+                      <span className="font-mono">Rp {customerKasbon.saldoHutang.toLocaleString("id-ID")}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : metodePembayaran === "TUNAI" ? (
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Bayar Uang Tunai (Cash)
@@ -1715,8 +1970,95 @@ export function POSClient({
                   ))}
                 </div>
 
+                {/* Widget Potong Kembalian untuk Cicil Kasbon jika pelanggan memiliki hutang aktif */}
+                {kembalianBruto > 0 && customerKasbon && customerKasbon.saldoHutang > 0 && (
+                  <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/50 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-amber-900 dark:text-amber-200">
+                        <input
+                          type="checkbox"
+                          checked={isPotongKembalian}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setIsPotongKembalian(checked);
+                            if (checked) {
+                              setPotongKembalianJumlah(
+                                Math.min(kembalianBruto, customerKasbon.saldoHutang)
+                              );
+                            } else {
+                              setPotongKembalianJumlah(0);
+                            }
+                          }}
+                          className="rounded text-amber-600"
+                        />
+                        <span>Potong Kembalian untuk Kasbon</span>
+                      </label>
+                      <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold font-mono">
+                        Hutang: Rp {customerKasbon.saldoHutang.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+
+                    {isPotongKembalian && (
+                      <div className="space-y-1.5 pt-1 border-t border-amber-200 dark:border-amber-800/40 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground text-[11px]">Nominal Potong:</span>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              value={potongKembalianJumlah || ""}
+                              onChange={(e) =>
+                                setPotongKembalianJumlah(
+                                  Math.min(
+                                    kembalianBruto,
+                                    customerKasbon.saldoHutang,
+                                    Number(e.target.value)
+                                  )
+                                )
+                              }
+                              className="h-7 w-28 text-xs text-right font-mono bg-background"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setPotongKembalianJumlah(
+                                  Math.min(kembalianBruto, customerKasbon.saldoHutang)
+                                )
+                              }
+                              className="h-7 px-1.5 text-[10px] font-semibold"
+                            >
+                              Maks
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                          <span>Kembalian Belanja:</span>
+                          <span className="font-mono">Rp {kembalianBruto.toLocaleString("id-ID")}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
+                          <span>Potong Kasbon:</span>
+                          <span className="font-mono">-Rp {effectivePotongKembalian.toLocaleString("id-ID")}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] font-bold text-foreground">
+                          <span>Kembalian Bersih:</span>
+                          <span className="font-mono">Rp {kembali.toLocaleString("id-ID")}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] text-amber-800 dark:text-amber-300 font-medium border-t border-dashed pt-1">
+                          <span>Sisa Saldo Kasbon:</span>
+                          <span className="font-bold font-mono">
+                            Rp {Math.max(0, customerKasbon.saldoHutang - effectivePotongKembalian).toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center bg-background p-3 rounded-xl border shadow-xs mt-2">
-                  <span className="text-muted-foreground font-medium text-xs">Uang Kembalian</span>
+                  <span className="text-muted-foreground font-medium text-xs">
+                    {isPotongKembalian ? "Kembalian Bersih" : "Uang Kembalian"}
+                  </span>
                   <span className="text-xl font-black text-emerald-600 font-mono">
                     Rp {kembali.toLocaleString("id-ID")}
                   </span>
@@ -1766,12 +2108,17 @@ export function POSClient({
               disabled={
                 cart.length === 0 ||
                 (metodePembayaran === "TUNAI" && bayar < total) ||
+                (metodePembayaran === "HUTANG" && !(member?.nama || kasbonNama).trim()) ||
                 isSubmitting
               }
               onClick={handleCheckout}
             >
               <CreditCard className="w-5 h-5" />
-              {isSubmitting ? "Memproses..." : "PROSES BAYAR [F10]"}
+              {isSubmitting
+                ? "Memproses..."
+                : metodePembayaran === "HUTANG"
+                ? "SIMPAN TRANSAKSI KASBON [F10]"
+                : "PROSES BAYAR [F10]"}
             </Button>
           </CardContent>
         </Card>
@@ -1871,6 +2218,16 @@ export function POSClient({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog Bayar Kasbon / Hutang Pelanggan */}
+      <BayarKasbonDialog
+        open={isBayarKasbonOpen}
+        onOpenChange={setIsBayarKasbonOpen}
+        onPaymentSuccess={(receipt) => {
+          setReceiptData(receipt);
+          setIsReceiptOpen(true);
+        }}
+      />
 
       {/* Modal Cetak Struk Thermal */}
       <ReceiptModal

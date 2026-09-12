@@ -102,6 +102,15 @@ model Transaksi {
   batalAt             DateTime?
   items               ItemTransaksi[]
 
+  // Integrasi Kasbon / Hutang
+  kasbonId            String?
+  kasbon              BukuKasbon?     @relation("TransaksiKasbon", fields: [kasbonId], references: [id])
+  tambahHutang        Int             @default(0) // Kurang bayar pada faktur ini yang masuk ke kasbon
+
+  // Pembayaran kasbon yang dipotong dari kembalian transaksi ini
+  potongKembalian     Int             @default(0)
+  pembayaranDariKembalian RiwayatPembayaranKasbon[] @relation("TransaksiKembalian")
+
   memberId String?
   member   Member? @relation(fields: [memberId], references: [id])
 
@@ -117,9 +126,51 @@ model Member {
   alamat  String?
 
   transaksi Transaksi[]
+  kasbon    BukuKasbon[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model BukuKasbon {
+  id                  String                    @id @default(uuid())
+  namaPelanggan       String                    // Non-Member atau Member
+  telepon             String?
+  alamat              String?
+  totalHutang         Int                       @default(0) // Akumulasi total belanja hutang
+  totalBayar          Int                       @default(0) // Akumulasi total pembayaran
+  saldoHutang         Int                       @default(0) // Saldo hutang aktif saat ini
+  jatuhTempo          DateTime?                 // Opsional (nullable)
+  catatan             String?
+
+  memberId            String?
+  member              Member?                   @relation(fields: [memberId], references: [id])
+
+  transaksiBelanja    Transaksi[]               @relation("TransaksiKasbon")
+  riwayatPembayaran   RiwayatPembayaranKasbon[] @relation("PembayaranKasbon")
+
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+}
+
+model RiwayatPembayaranKasbon {
+  id                  String          @id @default(uuid())
+  noPembayaran        String          @unique
+  kasbonId            String
+  kasbon              BukuKasbon      @relation("PembayaranKasbon", fields: [kasbonId], references: [id], onDelete: Cascade)
+
+  jumlahBayar         Int
+  saldoSebelum        Int
+  saldoSesudah        Int
+  metode              String          @default("TUNAI") // TUNAI, QRIS, TRANSFER, DEBIT, KEMBALIAN
+  referensi           String?
+  catatan             String?
+
+  // Jika dibayarkan via pemotongan kembalian transaksi belanja:
+  transaksiBelanjaId  String?
+  transaksiBelanja    Transaksi?      @relation("TransaksiKembalian", fields: [transaksiBelanjaId], references: [id])
+
+  createdAt           DateTime        @default(now())
 }
 
 model Promo {

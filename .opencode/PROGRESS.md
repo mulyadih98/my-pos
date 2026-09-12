@@ -46,6 +46,13 @@
   - **Filter Tanggal & Status di Riwayat (`/dashboard/riwayat`):** Filter preset Hari Ini, Kemarin, 7 Hari, Bulan Ini, Semua, dan Kustom Tanggal, ditambah filter metode bayar dan status lunas/void, serta kartu metrik omset ringkas.
   - **Pembatalan / Retur Transaksi (Void / Refund):** Pembatalan transaksi terverifikasi dengan alasan pembatalan dan otomatis mengembalikan stok barang ke toko serta mengecualikan nilai omset dari laporan laba rugi.
   - **Struk Thermal Multi-Metode & Void:** Cetak struk iframe dan ESC/POS direct Bluetooth otomatis menampilkan metode bayar, diskon, dan tanda void bila dibatalkan.
+- [x] **Sistem Saldo Kasbon / Hutang Akumulatif Pelanggan (Member & Non-Member):**
+  - **Running Balance Akumulatif:** Saldo kasbon bertambah saat belanja kurang bayar dan berkurang saat dicicil/dilunasi (tidak terikat per-invoice).
+  - **Metode Pembayaran [HUTANG]:** Mendukung pelanggan Non-Member dan Member, input DP, dan batas jatuh tempo opsional.
+  - **Potong Kembalian untuk Kasbon:** Otomasi pemotongan uang kembalian belanja tunai baru untuk mencicil saldo kasbon lama dengan kalkulasi kembalian bersih.
+  - **Bayar Kasbon Langsung di Kasir:** Modal dialog cepat [Alt+B] untuk pembayaran cicilan tunai maupun non-tunai (QRIS, Transfer Bank, Debit) lengkap dengan no. referensi.
+  - **Buku Kasbon Toko (`/dashboard/kasbon`):** Rekapitulasi piutang aktif, kartu kasbon buku besar (ledger rinci), dan link pengingat tagihan WhatsApp satu-klik.
+  - **Struk Thermal Kasbon:** Cetak bukti belanja kasbon, potong kembalian, dan tanda terima cicilan kasbon instan.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

@@ -47,6 +47,15 @@ export interface ReceiptData {
     isBonus?: boolean;
     bonusLabel?: string;
   }[];
+
+  // Kasbon Ledger Extensions
+  receiptType?: "TRANSAKSI" | "PEMBAYARAN_KASBON";
+  namaPelanggan?: string | null;
+  tambahHutang?: number;
+  potongKembalian?: number;
+  saldoHutangSebelum?: number;
+  saldoHutangAkhir?: number;
+  jatuhTempo?: Date | string | null;
 }
 
 interface ReceiptModalProps {
@@ -230,96 +239,211 @@ export function ReceiptModal({
               {divider}
             </div>
 
-            <div className="space-y-0.5 text-[10px]">
-              <div className="flex justify-between">
-                <span>No: {data.invoice}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tgl: {dateFormatted}, {timeFormatted}</span>
-              </div>
-              {data.member && (
-                <div className="flex justify-between font-semibold">
-                  <span>Mbr: {data.member.nama} ({data.member.kode})</span>
+            {data.receiptType === "PEMBAYARAN_KASBON" ? (
+              <>
+                <div className="my-1.5 p-1.5 border border-black text-center font-black text-xs">
+                  BUKTI PEMBAYARAN KASBON
                 </div>
-              )}
-            </div>
 
-            <div className="text-center font-bold my-1 text-[10px] overflow-hidden whitespace-nowrap">
-              {divider}
-            </div>
+                <div className="text-center font-bold my-1 text-[10px] overflow-hidden whitespace-nowrap">
+                  {divider}
+                </div>
 
-            {/* List Item Belanja */}
-            <div className="space-y-1 text-[11px]">
-              {data.items.map((item, idx) => (
-                <div key={idx}>
-                  <div className="flex justify-between font-bold">
-                    <span>{item.nama}</span>
-                    <span>
-                      {item.isBonus ? "GRATIS" : `Rp ${(item.harga * item.qty).toLocaleString("id-ID")}`}
-                    </span>
+                <div className="space-y-0.5 text-[10px]">
+                  <div className="flex justify-between">
+                    <span>No: {data.invoice}</span>
                   </div>
-                  <div className="flex justify-between text-[9.5px]">
-                    <span>
-                      {item.qty} {item.unitName} x Rp {item.isBonus ? "0" : item.harga.toLocaleString("id-ID")}
-                    </span>
-                    {item.isBonus && (
-                      <span className="font-bold">({item.bonusLabel || "Bonus"})</span>
-                    )}
+                  <div className="flex justify-between">
+                    <span>Tgl: {dateFormatted}, {timeFormatted}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Pelanggan: {data.namaPelanggan || (data.member ? data.member.nama : "Umum")}</span>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="text-center font-bold my-1 text-[10px] overflow-hidden whitespace-nowrap">
-              {divider}
-            </div>
+                <div className="text-center font-bold my-1 text-[10px] overflow-hidden whitespace-nowrap">
+                  {divider}
+                </div>
 
-            {/* Ringkasan Pembayaran */}
-            <div className="space-y-0.5 font-bold">
-              {data.diskonNominal && data.diskonNominal > 0 ? (
-                <>
+                <div className="space-y-0.5 font-bold">
                   <div className="flex justify-between text-[10.5px]">
-                    <span>Subtotal:</span>
-                    <span>Rp {(data.subtotal || (data.total + data.diskonNominal)).toLocaleString("id-ID")}</span>
-                  </div>
-                  <div className="flex justify-between text-[10.5px] text-red-600">
-                    <span>Diskon{data.diskonPersen ? ` (${data.diskonPersen}%)` : ""}:</span>
-                    <span>-Rp {data.diskonNominal.toLocaleString("id-ID")}</span>
-                  </div>
-                </>
-              ) : null}
-              <div className="flex justify-between text-xs font-black">
-                <span>TOTAL:</span>
-                <span>Rp {data.total.toLocaleString("id-ID")}</span>
-              </div>
-              <div className="flex justify-between text-[10px] font-semibold">
-                <span>METODE:</span>
-                <span>{data.metodePembayaran || "TUNAI"}</span>
-              </div>
-              {data.referensiPembayaran && (
-                <div className="flex justify-between text-[9.5px]">
-                  <span>No. Ref:</span>
-                  <span>{data.referensiPembayaran}</span>
-                </div>
-              )}
-              {(data.metodePembayaran === "TUNAI" || !data.metodePembayaran) ? (
-                <>
-                  <div className="flex justify-between text-[10.5px]">
-                    <span>TUNAI:</span>
-                    <span>Rp {data.bayar.toLocaleString("id-ID")}</span>
+                    <span>Saldo Awal:</span>
+                    <span>Rp {(data.saldoHutangSebelum ?? 0).toLocaleString("id-ID")}</span>
                   </div>
                   <div className="flex justify-between text-xs font-black">
-                    <span>KEMBALI:</span>
-                    <span>Rp {data.kembali.toLocaleString("id-ID")}</span>
+                    <span>JUMLAH DIBAYAR:</span>
+                    <span>Rp {data.bayar.toLocaleString("id-ID")}</span>
                   </div>
-                </>
-              ) : (
-                <div className="flex justify-between text-[10.5px] text-green-700">
-                  <span>STATUS:</span>
-                  <span>LUNAS</span>
+                  <div className="flex justify-between text-[10px] font-semibold">
+                    <span>METODE BAYAR:</span>
+                    <span>{data.metodePembayaran || "TUNAI"}</span>
+                  </div>
+                  {data.referensiPembayaran && (
+                    <div className="flex justify-between text-[9.5px]">
+                      <span>No. Ref:</span>
+                      <span>{data.referensiPembayaran}</span>
+                    </div>
+                  )}
+                  <div className="text-center font-bold my-1 text-[10px] overflow-hidden whitespace-nowrap">
+                    {divider}
+                  </div>
+                  <div className="flex justify-between text-xs font-black">
+                    <span>SISA SALDO HUTANG:</span>
+                    <span>Rp {(data.saldoHutangAkhir ?? 0).toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span>STATUS:</span>
+                    <span>{(data.saldoHutangAkhir ?? 0) === 0 ? "LUNAS" : "BELUM LUNAS"}</span>
+                  </div>
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-0.5 text-[10px]">
+                  <div className="flex justify-between">
+                    <span>No: {data.invoice}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tgl: {dateFormatted}, {timeFormatted}</span>
+                  </div>
+                  {(data.namaPelanggan || data.member) && (
+                    <div className="flex justify-between font-semibold">
+                      <span>Pelanggan: {data.namaPelanggan || (data.member ? `${data.member.nama} (${data.member.kode})` : "Umum")}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center font-bold my-1 text-[10px] overflow-hidden whitespace-nowrap">
+                  {divider}
+                </div>
+
+                {/* List Item Belanja */}
+                <div className="space-y-1 text-[11px]">
+                  {data.items.map((item, idx) => (
+                    <div key={idx}>
+                      <div className="flex justify-between font-bold">
+                        <span>{item.nama}</span>
+                        <span>
+                          {item.isBonus ? "GRATIS" : `Rp ${(item.harga * item.qty).toLocaleString("id-ID")}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[9.5px]">
+                        <span>
+                          {item.qty} {item.unitName} x Rp {item.isBonus ? "0" : item.harga.toLocaleString("id-ID")}
+                        </span>
+                        {item.isBonus && (
+                          <span className="font-bold">({item.bonusLabel || "Bonus"})</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-center font-bold my-1 text-[10px] overflow-hidden whitespace-nowrap">
+                  {divider}
+                </div>
+
+                {/* Ringkasan Pembayaran */}
+                <div className="space-y-0.5 font-bold">
+                  {data.diskonNominal && data.diskonNominal > 0 ? (
+                    <>
+                      <div className="flex justify-between text-[10.5px]">
+                        <span>Subtotal:</span>
+                        <span>Rp {(data.subtotal || (data.total + data.diskonNominal)).toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-[10.5px] text-red-600">
+                        <span>Diskon{data.diskonPersen ? ` (${data.diskonPersen}%)` : ""}:</span>
+                        <span>-Rp {data.diskonNominal.toLocaleString("id-ID")}</span>
+                      </div>
+                    </>
+                  ) : null}
+                  <div className="flex justify-between text-xs font-black">
+                    <span>TOTAL:</span>
+                    <span>Rp {data.total.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] font-semibold">
+                    <span>METODE:</span>
+                    <span>{data.metodePembayaran || "TUNAI"}</span>
+                  </div>
+                  {data.referensiPembayaran && (
+                    <div className="flex justify-between text-[9.5px]">
+                      <span>No. Ref:</span>
+                      <span>{data.referensiPembayaran}</span>
+                    </div>
+                  )}
+
+                  {data.metodePembayaran === "HUTANG" ? (
+                    <>
+                      <div className="flex justify-between text-[10.5px]">
+                        <span>DP DIBAYAR:</span>
+                        <span>Rp {data.bayar.toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-black">
+                        <span>TAMBAH HUTANG:</span>
+                        <span>+Rp {(data.tambahHutang ?? (data.total - data.bayar)).toLocaleString("id-ID")}</span>
+                      </div>
+                      {data.saldoHutangAkhir !== undefined && (
+                        <div className="flex justify-between text-xs font-black text-amber-700">
+                          <span>TOTAL SALDO HUTANG:</span>
+                          <span>Rp {data.saldoHutangAkhir.toLocaleString("id-ID")}</span>
+                        </div>
+                      )}
+                      {data.jatuhTempo && (
+                        <div className="flex justify-between text-[9.5px] text-muted-foreground">
+                          <span>Jatuh Tempo:</span>
+                          <span>{typeof data.jatuhTempo === "string" ? data.jatuhTempo : new Date(data.jatuhTempo).toLocaleDateString("id-ID")}</span>
+                        </div>
+                      )}
+                      <div className="text-center text-[9.5px] pt-3">
+                        <p>Tanda Tangan Pelanggan,</p>
+                        <p className="mt-5">({data.namaPelanggan || (data.member ? data.member.nama : "....................")})</p>
+                      </div>
+                    </>
+                  ) : data.potongKembalian && data.potongKembalian > 0 ? (
+                    <>
+                      <div className="flex justify-between text-[10.5px]">
+                        <span>TUNAI DITERIMA:</span>
+                        <span>Rp {data.bayar.toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>KEMBALIAN BELANJA:</span>
+                        <span>Rp ${(data.bayar - data.total).toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-[10.5px] text-amber-600">
+                        <span>POTONG KASBON:</span>
+                        <span>-Rp {data.potongKembalian.toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-black">
+                        <span>KEMBALIAN BERSIH:</span>
+                        <span>Rp {data.kembali.toLocaleString("id-ID")}</span>
+                      </div>
+                      {data.saldoHutangAkhir !== undefined && (
+                        <div className="flex justify-between text-[10px] text-amber-700">
+                          <span>SISA SALDO HUTANG:</span>
+                          <span>Rp {data.saldoHutangAkhir.toLocaleString("id-ID")}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (data.metodePembayaran === "TUNAI" || !data.metodePembayaran) ? (
+                    <>
+                      <div className="flex justify-between text-[10.5px]">
+                        <span>TUNAI:</span>
+                        <span>Rp {data.bayar.toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-black">
+                        <span>KEMBALI:</span>
+                        <span>Rp {data.kembali.toLocaleString("id-ID")}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between text-[10.5px] text-green-700">
+                      <span>STATUS:</span>
+                      <span>LUNAS</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="text-center font-bold my-1 text-[10px] overflow-hidden whitespace-nowrap">
               {divider}

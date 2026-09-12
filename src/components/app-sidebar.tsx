@@ -28,6 +28,7 @@ import {
   ClipboardCheck,
   Settings,
   TrendingUp,
+  BookOpenCheck,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -52,6 +53,11 @@ const data = {
       title: "Riwayat Transaksi",
       url: "/dashboard/riwayat",
       icon: <Receipt />,
+    },
+    {
+      title: "Buku Kasbon",
+      url: "/dashboard/kasbon",
+      icon: <BookOpenCheck />,
     },
     {
       title: "Laba Rugi",
