@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Command, Eye, EyeOff, Lock, User, ShieldCheck, ShoppingBag, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { AppLogo } from "@/components/brand/app-logo";
 
 export function LoginForm() {
   const router = useRouter();
@@ -55,13 +56,13 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md shadow-2xl border-border/80 backdrop-blur bg-card/95">
       <CardHeader className="text-center space-y-2 pb-6">
-        <div className="mx-auto size-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/25">
-          <Command className="size-6" />
+        <div className="mx-auto size-14 rounded-2xl bg-white dark:bg-zinc-900 border border-border flex items-center justify-center p-2.5 shadow-md shadow-black/5">
+          <AppLogo className="size-9" />
         </div>
         <div>
           <CardTitle className="text-2xl font-black tracking-tight">Masuk ke My POS</CardTitle>
           <CardDescription className="text-xs text-muted-foreground mt-1">
-            Sistem Kasir & Manajemen Inventori Toko Retail
+            Toko Serba Ada &bull; Sistem Kasir & Inventori
           </CardDescription>
         </div>
       </CardHeader>

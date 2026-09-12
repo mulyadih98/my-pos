@@ -93,12 +93,12 @@ export function InstallPwaButton({ className }: { className?: string }) {
       variant="outline"
       size="sm"
       onClick={handleInstallClick}
-      className={`w-full justify-start gap-2 text-xs font-semibold border-emerald-600/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/15 transition-all shadow-2xs ${
+      className={`w-full justify-start gap-2 text-xs font-semibold border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all shadow-2xs ${
         className || ""
       }`}
       title="Pasang aplikasi My POS ke komputer atau HP Anda"
     >
-      <Smartphone className="w-4 h-4 text-emerald-600 shrink-0" />
+      <Smartphone className="w-4 h-4 text-foreground shrink-0" />
       <span>Install Aplikasi POS</span>
     </Button>
   );

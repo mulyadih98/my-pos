@@ -33,6 +33,7 @@ import {
 import Link from "next/link";
 import { UserSession } from "@/lib/auth";
 import { InstallPwaButton } from "@/components/pwa/install-pwa-button";
+import { AppLogo } from "@/components/brand/app-logo";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentUser?: UserSession | null;
@@ -162,8 +163,11 @@ export function AppSidebar({ currentUser, ...props }: AppSidebarProps) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <Link href={isOwner ? "/dashboard" : "/dashboard/transaksi"}>
-                <CommandIcon className="size-5!" />
-                <span className="text-base font-semibold">My POS</span>
+                <AppLogo className="size-5.5! shrink-0" />
+                <div className="flex flex-col text-left">
+                  <span className="text-sm font-bold leading-none">My POS</span>
+                  <span className="text-[9px] text-muted-foreground font-medium mt-0.5">Toko Serba Ada</span>
+                </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

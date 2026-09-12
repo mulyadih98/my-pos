@@ -1,29 +1,47 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#059669" />
-      <stop offset="100%" stop-color="#10b981" />
-    </linearGradient>
-    <filter id="dropShadow" x="0" y="4" width="512" height="512" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#064e3b" flood-opacity="0.3" />
-    </filter>
-  </defs>
+  <rect width="512" height="512" rx="100" fill="#ffffff" />
+  
+  <g transform="translate(0, 4)">
+    <!-- Top Roof Bar with border -->
+    <rect x="172" y="86" width="168" height="15" rx="7.5" stroke="#6e9360" stroke-width="7" fill="white" />
 
-  <!-- Background rounded rectangle -->
-  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
-
-  <!-- Modern POS Cashier & Shopping Motif -->
-  <g filter="url(#dropShadow)">
-    <!-- Shopping Bag / Cart Outline -->
-    <path d="M144 192H368L352 400H160L144 192Z" fill="white" fill-opacity="0.95" />
-    <path d="M208 192V144C208 117.49 229.49 96 256 96C282.51 96 304 117.49 304 144V192" stroke="white" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Canopy / Awning -->
+    <!-- Scalloped path: width ~194 at bottom -->
+    <path d="M176 102 C172 102 166 112 160 145 C156 168 152 186 164 195 C176 204 196 204 208 195 C220 204 240 204 252 195 C264 204 284 204 296 195 C308 204 328 204 340 195 C352 186 348 168 344 145 C338 112 332 102 328 102 Z" fill="#6e9360" stroke="#6e9360" stroke-width="5" stroke-linejoin="round" />
     
-    <!-- POS / Cashier Screen Accent in center -->
-    <rect x="192" y="240" width="128" height="88" rx="16" fill="#059669" />
-    <circle cx="236" cy="284" r="12" fill="white" />
-    <rect x="264" y="278" width="40" height="12" rx="6" fill="white" />
+    <!-- Canopy vertical dividing lines -->
+    <path d="M208 102 C208 135 208 165 208 195" stroke="white" stroke-width="4.5" stroke-linecap="round" />
+    <path d="M252 102 C252 135 252 165 252 195" stroke="white" stroke-width="4.5" stroke-linecap="round" />
+    <path d="M296 102 C296 135 296 165 296 195" stroke="white" stroke-width="4.5" stroke-linecap="round" />
 
-    <!-- Receipt / Tag Accent coming out top-right -->
-    <rect x="224" y="348" width="64" height="16" rx="8" fill="#10b981" />
+    <!-- Outer Store Walls & Base -->
+    <path d="M168 198 V276 H158 C153 276 149 280 149 285 C149 290 153 294 158 294 H354 C359 294 363 290 363 285 C363 280 359 276 354 276 H344 V198" stroke="#6e9360" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+    <!-- Left: Door Frame -->
+    <rect x="187" y="208" width="58" height="86" rx="4" stroke="#6e9360" stroke-width="7" fill="white" />
+    
+    <!-- Shopping Cart inside door -->
+    <g transform="translate(196, 252) scale(0.8)" stroke="#6e9360" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="10" cy="38" r="3" fill="#6e9360" stroke="none" />
+      <circle cx="28" cy="38" r="3" fill="#6e9360" stroke="none" />
+      <path d="M2 6 H8 L12 28 H31 L35 12 H10" stroke-width="3" fill="none" />
+      <path d="M15 17 H32 M17 23 H29 M22 13 V27" stroke-width="1.8" />
+    </g>
+
+    <!-- Right: Window Showcase -->
+    <rect x="254" y="208" width="72" height="54" rx="4" stroke="#6e9360" stroke-width="7" fill="#6e9360" />
+    <!-- Shelf below window -->
+    <rect x="254" y="270" width="72" height="24" rx="3" stroke="#6e9360" stroke-width="7" fill="none" />
+
+    <!-- BRAND TEXT: MY POS -->
+    <!-- Drop Shadow Text -->
+    <text x="256" y="347" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="42" letter-spacing="3" fill="#cddac9">MY POS</text>
+    <!-- Main Text -->
+    <text x="256" y="344" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="42" letter-spacing="3" fill="#6e9360">MY POS</text>
+
+    <!-- Ribbon Banner: TOKO SERBA ADA -->
+    <path d="M150 360 L164 374 L150 388 H362 L348 374 L362 360 Z" fill="#6e9360" />
+    <!-- Ribbon Text -->
+    <text x="256" y="379" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="800" font-size="14" letter-spacing="2.5" fill="#ffffff">TOKO SERBA ADA</text>
   </g>
 </svg>

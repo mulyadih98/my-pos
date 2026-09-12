@@ -80,10 +80,11 @@
   - **Batch Chunking Server Action:** Fungsi `importBarangBatch` memproses 20 barang/batch dengan auto-register Kategori & Satuan baru tanpa membebani connection pooler Supabase.
   - **Layout Modal Footer:** Perbaikan posisi tombol aksi Import dan Batal pada modal impor barang agar tidak terpotong/tenggelam pada layar dengan container footer `shrink-0` dan `min-h-0` yang presisi.
 - [x] **Dukungan Progressive Web App (PWA) & Branding Aplikasi:**
-  - **Identitas & Judul Resmi:** Mengganti judul default *"Create Next App"* menjadi *"My POS - Aplikasi Kasir & Manajemen Toko"* dengan title template dinamis `%s | My POS`, deskripsi sistem kasir modern, dan theme-color emerald (`#10b981`).
+  - **Identitas & Judul Resmi:** Mengganti judul default *"Create Next App"* menjadi *"My POS - Aplikasi Kasir & Manajemen Toko"* dengan title template dinamis `%s | My POS`, deskripsi sistem kasir modern, dan theme-color Dark Charcoal (`#09090b`).
+  - **Logo Storefront "MY POS - TOKO SERBA ADA":** Desain logo etalase toko ritel berdasarkan gambar referensi (kanopi bergelombang, pintu dengan keranjang belanja, etalase jendela, teks MY POS dan pita TOKO SERBA ADA dalam warna Sage Green `#6e9360`).
   - **App Icons Resolusi Tinggi:** Generate ikon PNG profesional di `public/icons/` (192x192, 512x512, maskable 512x512 untuk Android, dan apple-touch-icon 180x180 untuk iOS).
   - **Web App Manifest & Service Worker:** Konfigurasi `src/app/manifest.ts`, `public/manifest.json`, dan `public/sw.js` (mode standalone, offline caching) memenuhi standar W3C & Google Chrome PWA.
-  - **Tombol Install Cepat:** Komponen `InstallPwaButton` di sidebar menu untuk memicu dialog instalasi aplikasi 1-klik di Desktop Windows/Mac dan HP Android, serta panduan share untuk iOS Safari.
+  - **Integrasi Komponen Brand:** Komponen `AppLogo` terintegrasi pada Header Sidebar dan Halaman Login, serta penyelarasan tema warna netral/charcoal pada tombol PWA dan dialog impor barang.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

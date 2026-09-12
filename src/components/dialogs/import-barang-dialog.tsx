@@ -358,7 +358,7 @@ export function ImportBarangDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2 font-semibold shadow-xs">
-          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+          <FileSpreadsheet className="w-4 h-4 text-primary" />
           <span className="hidden sm:inline">Import Excel/CSV</span>
           <span className="sm:hidden">Import</span>
         </Button>
@@ -370,7 +370,7 @@ export function ImportBarangDialog() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                <FileSpreadsheet className="w-5 h-5 text-primary" />
                 Import Barang Masal via Spreadsheet
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -383,9 +383,9 @@ export function ImportBarangDialog() {
               <a
                 href="/template_import_barang.xlsx"
                 download="template_import_barang.xlsx"
-                className="inline-flex items-center justify-center rounded-md text-xs font-semibold h-8 px-3 gap-1.5 border border-emerald-600/40 text-emerald-700 dark:text-emerald-400 bg-background hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shadow-2xs"
+                className="inline-flex items-center justify-center rounded-md text-xs font-semibold h-8 px-3 gap-1.5 border border-primary/30 text-foreground bg-background hover:bg-accent transition-colors shadow-2xs"
               >
-                <Download className="w-3.5 h-3.5" /> Template Excel (.xlsx)
+                <Download className="w-3.5 h-3.5 text-primary" /> Template Excel (.xlsx)
               </a>
               <a
                 href="/template_import_barang.csv"
@@ -445,7 +445,7 @@ export function ImportBarangDialog() {
                 onChange={handleFileChange}
               />
               <div className="flex flex-col items-center justify-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                   <UploadCloud className="w-7 h-7" />
                 </div>
                 <div>
@@ -466,7 +466,7 @@ export function ImportBarangDialog() {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 border rounded-xl bg-card shadow-2xs">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
@@ -654,7 +654,7 @@ export function ImportBarangDialog() {
               variant="default"
               disabled={validCount === 0 || isProcessing}
               onClick={handleStartImport}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs"
+              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-xs"
             >
               {isProcessing ? (
                 <>
