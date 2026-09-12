@@ -114,6 +114,9 @@ model Transaksi {
   memberId String?
   member   Member? @relation(fields: [memberId], references: [id])
 
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -293,4 +296,37 @@ model Pengaturan {
   footerPesan  String   @default("Terima Kasih Atas Kunjungan Anda\nBarang yang sudah dibeli tidak dapat ditukar")
   ukuranKertas String   @default("58mm")
   updatedAt    DateTime @updatedAt
+}
+
+model User {
+  id               String              @id @default(uuid())
+  username         String              @unique
+  nama             String
+  password         String              // Hashed password
+  role             String              @default("KASIR") // "OWNER" | "KASIR"
+  isActive         Boolean             @default(true)
+  telepon          String?
+  avatar           String?
+
+  transaksi        Transaksi[]
+  biayaOperasional BiayaOperasional[]
+
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+}
+
+model BiayaOperasional {
+  id        String   @id @default(uuid())
+  tanggal   DateTime @default(now())
+  kategori  String   // "LISTRIK_AIR", "GAJI", "SEWA", "PERLENGKAPAN", "TRANSPORT", "PEMELIHARAAN", "LAINNYA"
+  nama      String   // Nama/Deskripsi pengeluaran
+  jumlah    Int      // Nominal biaya
+  metode    String   @default("TUNAI") // "TUNAI", "TRANSFER", "QRIS"
+  catatan   String?
+
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

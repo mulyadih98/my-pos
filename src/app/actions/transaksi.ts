@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser, requireRole } from "@/lib/auth";
 
 export type TransactionItemInput = {
   barangId: string;
@@ -73,6 +74,7 @@ export async function createTransaksi(payload: {
   const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
   const invoice = `INV-${dateStr}-${randomStr}`;
 
+  const currentUser = await getCurrentUser();
   let finalKasbonInfo: any = null;
 
   await db.$transaction(async (tx) => {
@@ -156,6 +158,7 @@ export async function createTransaksi(payload: {
         catatan: catatan ? catatan.trim() : null,
         status: "SELESAI",
         memberId: memberId || null,
+        userId: currentUser?.id || null,
         kasbonId: linkedKasbonId,
         tambahHutang: nominalTambahHutang,
         potongKembalian: potongKembalianJumlah > 0 ? potongKembalianJumlah : 0,
@@ -261,6 +264,8 @@ export async function createTransaksi(payload: {
  * Membatalkan (Void) Transaksi dan mengembalikan stok barang ke semula
  */
 export async function voidTransaksi(id: string, alasan: string) {
+  await requireRole(["OWNER"]);
+
   if (!id) {
     throw new Error("ID transaksi tidak valid");
   }
@@ -387,6 +392,13 @@ export async function getTransaksi(filter?: TransaksiFilter) {
     include: {
       member: true,
       kasbon: true,
+      user: {
+        select: {
+          id: true,
+          nama: true,
+          username: true,
+        },
+      },
       items: {
         include: {
           barang: true,

@@ -53,6 +53,16 @@
   - **Bayar Kasbon Langsung di Kasir:** Modal dialog cepat [Alt+B] untuk pembayaran cicilan tunai maupun non-tunai (QRIS, Transfer Bank, Debit) lengkap dengan no. referensi.
   - **Buku Kasbon Toko (`/dashboard/kasbon`):** Rekapitulasi piutang aktif, kartu kasbon buku besar (ledger rinci), dan link pengingat tagihan WhatsApp satu-klik.
   - **Struk Thermal Kasbon:** Cetak bukti belanja kasbon, potong kembalian, dan tanda terima cicilan kasbon instan.
+- [x] **Autentikasi & Hak Akses (RBAC: Owner vs Kasir):**
+  - **Session Cookie Aman (JWT/HMAC):** Menggunakan `jose` dan HTTP-Only Secure Cookie `mypos_session` berlaku 7 hari.
+  - **Halaman Login Modern (`/login`):** Validasi kredensial, toggle lihat password, dan tombol pengisian cepat akun default (Owner: `owner`/`owner123` & Kasir: `kasir`/`kasir123`).
+  - **Next.js Middleware:** Proteksi otomatis rute `/dashboard/*` dari akses publik, redirect `/login`, dan pembatasan rute Owner dari Kasir.
+  - **Manajemen Pengguna (`/dashboard/user`):** Owner dapat menambah kasir baru, mengubah hak akses, reset password, dan menonaktifkan akun.
+  - **Sidebar & NavUser Adaptif:** Menampilkan nama pengguna, role badge, tombol logout aktif, dan menyaring menu secara otomatis (Kasir hanya melihat menu operasional).
+  - **Proteksi Khusus:** Tombol Void Transaksi di Riwayat dikunci khusus Owner (Opsi 1). Kolom Harga Modal (HPP) dan tombol Hapus Barang disembunyikan untuk Kasir.
+- [x] **Pencatatan Biaya Operasional Toko (`/dashboard/operasional`):**
+  - **Manajemen Pengeluaran Toko:** Input pengeluaran operasional (Listrik/Air, Gaji, Sewa, Perlengkapan/Kresek, Transport, Pemeliharaan, dll) metode tunai/transfer.
+  - **Integrasi Penuh ke Laba Rugi (`/dashboard/laba-rugi`):** Pengeluaran operasional otomatis memotong laba kotor untuk menghitung Laba Bersih Riil Toko (*Net Profit*), dilengkapi kartu ringkasan KPI dan tabel breakdown beban usaha.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

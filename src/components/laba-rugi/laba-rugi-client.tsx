@@ -4,7 +4,6 @@ import { useState, useTransition, useMemo } from "react";
 import {
   LabaRugiReportData,
   getLaporanLabaRugi,
-  ProductProfitSummary,
 } from "@/app/actions/laba-rugi";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,19 +19,17 @@ import {
 } from "@/components/ui/table";
 import {
   TrendingUp,
-  TrendingDown,
-  DollarSign,
   Package,
   Calendar,
   Printer,
-  Download,
   Search,
   Filter,
-  AlertTriangle,
   Receipt,
   FileSpreadsheet,
   ArrowUpRight,
   ArrowDownRight,
+  Wallet,
+  DollarSign,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -264,23 +261,23 @@ export function LabaRugiClient({ initialData }: LabaRugiClientProps) {
       </div>
 
       {/* 1. Stat Cards (KPI Ringkasan Keuangan) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Card 1: Total Omset (Pendapatan Kotor) */}
         <Card className="border-l-4 border-l-blue-500 shadow-xs">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Total Omset (Penjualan)
+              Total Omset
             </CardTitle>
             <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600">
               <Receipt className="w-4 h-4" />
             </div>
           </CardHeader>
           <CardContent className="space-y-1">
-            <div className="text-2xl font-black text-foreground font-mono tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-foreground font-mono tracking-tight">
               Rp {data.summary.totalOmset.toLocaleString("id-ID")}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {data.summary.totalTransaksi} transaksi ({data.summary.totalItemTerjual} pcs terjual)
+              {data.summary.totalTransaksi} transaksi ({data.summary.totalItemTerjual} pcs)
             </p>
           </CardContent>
         </Card>
@@ -296,11 +293,11 @@ export function LabaRugiClient({ initialData }: LabaRugiClientProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-1">
-            <div className="text-2xl font-black text-foreground font-mono tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-foreground font-mono tracking-tight">
               Rp {data.summary.totalHpp.toLocaleString("id-ID")}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Total harga beli modal barang yang telah terjual
+              Harga beli barang terjual
             </p>
           </CardContent>
         </Card>
@@ -309,14 +306,14 @@ export function LabaRugiClient({ initialData }: LabaRugiClientProps) {
         <Card className="border-l-4 border-l-primary shadow-xs">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Laba Kotor (Gross)
+              Laba Kotor
             </CardTitle>
             <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
               <TrendingUp className="w-4 h-4" />
             </div>
           </CardHeader>
           <CardContent className="space-y-1">
-            <div className="text-2xl font-black text-primary font-mono tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-primary font-mono tracking-tight">
               Rp {data.summary.labaKotor.toLocaleString("id-ID")}
             </div>
             <div className="flex items-center gap-1.5 text-[11px]">
@@ -328,7 +325,27 @@ export function LabaRugiClient({ initialData }: LabaRugiClientProps) {
           </CardContent>
         </Card>
 
-        {/* Card 4: Laba Bersih (Net Profit) */}
+        {/* Card 4: Biaya Operasional Toko */}
+        <Card className="border-l-4 border-l-orange-500 shadow-xs">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Beban Operasional
+            </CardTitle>
+            <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-600">
+              <Wallet className="w-4 h-4" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <div className="text-xl sm:text-2xl font-black text-orange-600 dark:text-orange-400 font-mono tracking-tight">
+              Rp {data.summary.totalBiayaOperasional.toLocaleString("id-ID")}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Beban listrik, gaji, sewa, dll
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 5: Laba Bersih (Net Profit) */}
         <Card
           className={`border-l-4 shadow-xs ${
             data.summary.labaBersih >= 0
@@ -338,7 +355,7 @@ export function LabaRugiClient({ initialData }: LabaRugiClientProps) {
         >
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Laba Bersih Operasional
+              Laba Bersih Riil
             </CardTitle>
             <div
               className={`p-1.5 rounded-lg ${
@@ -354,7 +371,7 @@ export function LabaRugiClient({ initialData }: LabaRugiClientProps) {
           </CardHeader>
           <CardContent className="space-y-1">
             <div
-              className={`text-2xl font-black font-mono tracking-tight ${
+              className={`text-xl sm:text-2xl font-black font-mono tracking-tight ${
                 data.summary.labaBersih >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
               }`}
             >
@@ -427,7 +444,50 @@ export function LabaRugiClient({ initialData }: LabaRugiClientProps) {
         </CardContent>
       </Card>
 
-      {/* 3. Tabel Rincian Keuntungan Per Barang */}
+      {/* 3. Rincian Beban Operasional Toko per Kategori */}
+      {data.expenseBreakdown && data.expenseBreakdown.length > 0 && (
+        <Card className="shadow-xs print:break-inside-avoid">
+          <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-orange-500" /> Rincian Beban Operasional Toko
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Rincian total pengeluaran beban usaha yang mengurangi laba kotor pada periode ini.
+              </CardDescription>
+            </div>
+            <div className="font-mono font-black text-sm text-orange-600">
+              Total: Rp {data.summary.totalBiayaOperasional.toLocaleString("id-ID")}
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x p-2 gap-2 text-xs">
+              {data.expenseBreakdown.map((exp) => {
+                const pctFromOmset =
+                  data.summary.totalOmset > 0
+                    ? Math.round((exp.total / data.summary.totalOmset) * 1000) / 10
+                    : 0;
+
+                return (
+                  <div key={exp.kategori} className="p-2.5 rounded-lg bg-muted/20 flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-foreground">{exp.label}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                        {pctFromOmset}% dari total omset
+                      </p>
+                    </div>
+                    <span className="font-bold font-mono text-orange-600 text-xs sm:text-sm">
+                      Rp {exp.total.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 4. Tabel Rincian Keuntungan Per Barang */}
       <Card className="shadow-xs print:break-inside-avoid">
         <CardHeader className="pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>

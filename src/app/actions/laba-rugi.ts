@@ -25,8 +25,15 @@ export interface DailyProfitSummary {
   hpp: number;
   labaKotor: number;
   kerugianOpname: number;
+  biayaOperasional: number;
   labaBersih: number;
   transaksiCount: number;
+}
+
+export interface ExpenseCategorySummary {
+  kategori: string;
+  label: string;
+  total: number;
 }
 
 export interface LabaRugiReportData {
@@ -42,6 +49,7 @@ export interface LabaRugiReportData {
     marginKotorPercent: number;
     totalKerugianOpname: number;
     totalKoreksiTambahOpname: number;
+    totalBiayaOperasional: number;
     labaBersih: number;
     marginBersihPercent: number;
     totalTransaksi: number;
@@ -49,6 +57,7 @@ export interface LabaRugiReportData {
   };
   dailyTrend: DailyProfitSummary[];
   productBreakdown: ProductProfitSummary[];
+  expenseBreakdown: ExpenseCategorySummary[];
 }
 
 export async function getLaporanLabaRugi(filter?: LabaRugiFilter): Promise<LabaRugiReportData> {
@@ -115,6 +124,19 @@ export async function getLaporanLabaRugi(filter?: LabaRugiFilter): Promise<LabaR
     },
   });
 
+  // 3. Ambil Biaya Operasional pada periode yang sama
+  const expenses = await db.biayaOperasional.findMany({
+    where: {
+      tanggal: {
+        gte: start,
+        lte: end,
+      },
+    },
+    orderBy: {
+      tanggal: "asc",
+    },
+  });
+
   // Inisialisasi peta harian
   const dailyMap = new Map<string, DailyProfitSummary>();
 
@@ -128,6 +150,7 @@ export async function getLaporanLabaRugi(filter?: LabaRugiFilter): Promise<LabaR
       hpp: 0,
       labaKotor: 0,
       kerugianOpname: 0,
+      biayaOperasional: 0,
       labaBersih: 0,
       transaksiCount: 0,
     });
@@ -234,14 +257,49 @@ export async function getLaporanLabaRugi(filter?: LabaRugiFilter): Promise<LabaR
     }
   }
 
-  // Hitung laba bersih harian pada dailyMap
+  // Proses Biaya Operasional Toko
+  let totalBiayaOperasional = 0;
+  const expenseMap: Record<string, number> = {};
+
+  for (const exp of expenses) {
+    totalBiayaOperasional += exp.jumlah;
+    expenseMap[exp.kategori] = (expenseMap[exp.kategori] || 0) + exp.jumlah;
+
+    const expDateStr = new Date(exp.tanggal).toISOString().slice(0, 10);
+    const dayStat = dailyMap.get(expDateStr);
+    if (dayStat) {
+      dayStat.biayaOperasional += exp.jumlah;
+    }
+  }
+
+  // Label kategori ramah
+  const KATEGORI_LABELS: Record<string, string> = {
+    LISTRIK_AIR: "Listrik & Air (PLN/PDAM)",
+    GAJI: "Gaji & Uang Makan Karyawan",
+    SEWA: "Sewa Kios / Tempat Usaha",
+    PERLENGKAPAN: "Perlengkapan & Plastik Toko",
+    TRANSPORT: "Transportasi, BBM & Parkir",
+    PEMELIHARAAN: "Pemeliharaan & Service Alat",
+    LAINNYA: "Pengeluaran Operasional Lainnya",
+  };
+
+  const expenseBreakdown: ExpenseCategorySummary[] = Object.entries(expenseMap).map(
+    ([kategori, total]) => ({
+      kategori,
+      label: KATEGORI_LABELS[kategori] || kategori,
+      total,
+    })
+  );
+  expenseBreakdown.sort((a, b) => b.total - a.total);
+
+  // Hitung laba bersih harian pada dailyMap (Laba Kotor - Kerugian Opname - Biaya Operasional)
   dailyMap.forEach((day) => {
-    day.labaBersih = day.labaKotor - day.kerugianOpname;
+    day.labaBersih = day.labaKotor - day.kerugianOpname - day.biayaOperasional;
   });
 
   const labaKotor = totalOmset - totalHpp;
   const marginKotorPercent = totalOmset > 0 ? Math.round((labaKotor / totalOmset) * 1000) / 10 : 0;
-  const labaBersih = labaKotor - totalKerugianOpname + totalKoreksiTambahOpname;
+  const labaBersih = labaKotor - totalKerugianOpname + totalKoreksiTambahOpname - totalBiayaOperasional;
   const marginBersihPercent = totalOmset > 0 ? Math.round((labaBersih / totalOmset) * 1000) / 10 : 0;
 
   const startFormatted = start.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
@@ -260,6 +318,7 @@ export async function getLaporanLabaRugi(filter?: LabaRugiFilter): Promise<LabaR
       marginKotorPercent,
       totalKerugianOpname,
       totalKoreksiTambahOpname,
+      totalBiayaOperasional,
       labaBersih,
       marginBersihPercent,
       totalTransaksi: transactions.length,
@@ -267,5 +326,6 @@ export async function getLaporanLabaRugi(filter?: LabaRugiFilter): Promise<LabaR
     },
     dailyTrend: Array.from(dailyMap.values()),
     productBreakdown,
+    expenseBreakdown,
   };
 }

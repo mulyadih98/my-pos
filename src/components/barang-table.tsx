@@ -6,13 +6,12 @@ import { VarianTable } from "./varian-table";
 import { columnsBarang } from "@/app/dashboard/barang/column-barang";
 import { AddBarangDialog } from "./dialogs/add-barang-dialog";
 
-export function BarangTable({ data, suppliers, units, categories }: any) {
+export function BarangTable({ data, suppliers, units, categories, isOwner = true }: any) {
   return (
     <DataTable
-      //   columns={columnsBarang}
-      columns={columnsBarang(suppliers, units, categories)}
+      columns={columnsBarang(suppliers, units, categories, isOwner)}
       data={data}
-      toolbar={<AddBarangDialog suppliers={suppliers} units={units} categories={categories} />}
+      toolbar={isOwner ? <AddBarangDialog suppliers={suppliers} units={units} categories={categories} /> : undefined}
       renderSubComponent={(row) => (
         <VarianTable varians={row.original.varians} />
       )}

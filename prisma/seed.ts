@@ -1,7 +1,38 @@
 import { db } from "../src/lib/db";
+import { hashPassword } from "../src/lib/auth";
 
 async function main() {
   console.log("🌱 Mulai proses seeding database...");
+
+  // 0. Default Users (Owner & Kasir)
+  const defaultUsers = [
+    {
+      username: "owner",
+      nama: "Pemilik Toko (Owner)",
+      password: hashPassword("owner123"),
+      role: "OWNER",
+      telepon: "0812-0000-0001",
+    },
+    {
+      username: "kasir",
+      nama: "Kasir Toko (Shift 1)",
+      password: hashPassword("kasir123"),
+      role: "KASIR",
+      telepon: "0812-0000-0002",
+    },
+  ];
+
+  for (const u of defaultUsers) {
+    await db.user.upsert({
+      where: { username: u.username },
+      update: {
+        role: u.role,
+        nama: u.nama,
+      },
+      create: u,
+    });
+  }
+  console.log(`✅ ${defaultUsers.length} Akun pengguna default (Owner & Kasir) disiapkan.`);
 
   // 1. Satuan / Units
   const unitsData = [

@@ -48,7 +48,13 @@ import { useRouter } from "next/navigation";
 
 type DatePreset = "HARI_INI" | "KEMARIN" | "7_HARI" | "BULAN_INI" | "SEMUA" | "KUSTOM";
 
-export function RiwayatTable({ data }: { data: any[] }) {
+export function RiwayatTable({
+  data,
+  isOwner = false,
+}: {
+  data: any[];
+  isOwner?: boolean;
+}) {
   const router = useRouter();
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -358,7 +364,7 @@ export function RiwayatTable({ data }: { data: any[] }) {
               <Printer className="w-3.5 h-3.5" /> Cetak
             </Button>
 
-            {!isBatal && (
+            {!isBatal && isOwner && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -369,7 +375,7 @@ export function RiwayatTable({ data }: { data: any[] }) {
                   setCustomReason("");
                 }}
                 className="gap-1 h-8 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive"
-                title="Batalkan (Void) transaksi ini dan kembalikan stok barang"
+                title="Batalkan (Void) transaksi ini dan kembalikan stok barang (Hanya Owner)"
               >
                 <Ban className="w-3.5 h-3.5" /> Void
               </Button>

@@ -1,12 +1,15 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { getCurrentUser } from "@/lib/auth";
 
-export default function LayoutDashboard({
+export default async function LayoutDashboard({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const user = await getCurrentUser();
+
   return (
     <SidebarProvider
       style={
@@ -16,7 +19,7 @@ export default function LayoutDashboard({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      <AppSidebar variant="inset" currentUser={user} />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col min-w-0">

@@ -10,6 +10,7 @@ export const columnsBarang = (
   suppliers: Supplier[],
   units: Unit[],
   categories: any[],
+  isOwner: boolean = true,
 ): ColumnDef<any>[] => [
   {
     id: "expand",
@@ -105,13 +106,19 @@ export const columnsBarang = (
       const data = row.original;
       return (
         <div className="flex justify-end gap-1.5">
-          <EditBarangDialog 
-            data={data} 
-            suppliers={suppliers} 
-            units={units} 
-            categories={categories} 
-          />
-          <DeleteBarangDialog id={data.id} nama={data.nama} />
+          {isOwner ? (
+            <>
+              <EditBarangDialog 
+                data={data} 
+                suppliers={suppliers} 
+                units={units} 
+                categories={categories} 
+              />
+              <DeleteBarangDialog id={data.id} nama={data.nama} />
+            </>
+          ) : (
+            <span className="text-[11px] text-muted-foreground italic px-2">Lihat Saja</span>
+          )}
         </div>
       );
     },
