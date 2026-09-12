@@ -27,6 +27,7 @@ export interface PrintableReceiptData {
     nama: string;
     kode: string;
   } | null;
+  kasirNama?: string | null;
   items: ReceiptItem[];
 
   // Kasbon / Hutang Ledger Fields
@@ -267,6 +268,9 @@ export function generateThermalReceiptHtml(
             <span>Tgl: ${formattedDate}</span>
           </div>
           <div class="meta-row">
+            <span>Kasir: ${data.kasirNama || "Kasir"}</span>
+          </div>
+          <div class="meta-row">
             <span>Pelanggan: ${data.namaPelanggan || (data.member ? data.member.nama : "Umum")}</span>
           </div>
 
@@ -313,6 +317,9 @@ export function generateThermalReceiptHtml(
           </div>
           <div class="meta-row">
             <span>Tgl: ${formattedDate}</span>
+          </div>
+          <div class="meta-row">
+            <span>Kasir: ${data.kasirNama || "Kasir"}</span>
           </div>
           ${(data.namaPelanggan || data.member) ? `
           <div class="meta-row">

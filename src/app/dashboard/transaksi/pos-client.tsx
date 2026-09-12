@@ -65,6 +65,7 @@ import { KeyboardGuideDialog } from "@/components/keyboard-guide-dialog";
 import { CameraScannerDialog } from "@/components/pos/camera-scanner-dialog";
 import { BayarKasbonDialog } from "@/components/pos/bayar-kasbon-dialog";
 import { generateId } from "@/lib/utils";
+import { UserSession } from "@/lib/auth";
 
 interface Varian {
   id: string;
@@ -139,10 +140,12 @@ export function POSClient({
   initialProducts,
   initialMembers,
   initialPromos = [],
+  currentUser,
 }: {
   initialProducts: Product[];
   initialMembers: Member[];
   initialPromos?: PromoRule[];
+  currentUser?: UserSession | null;
 }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
@@ -661,6 +664,7 @@ export function POSClient({
           status: "SELESAI",
           date: new Date(),
           member: member ? { nama: member.nama, kode: member.kode } : null,
+          kasirNama: result.kasirNama || currentUser?.nama || currentUser?.username || "Kasir",
           items: cart.map((item) => ({
             nama: item.nama,
             unitName: item.unitName,

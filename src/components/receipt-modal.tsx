@@ -37,6 +37,7 @@ export interface ReceiptData {
     nama: string;
     kode: string;
   } | null;
+  kasirNama?: string | null;
   items: {
     nama: string;
     unitName: string;
@@ -254,6 +255,9 @@ export function ReceiptModal({
                   <div className="flex justify-between">
                     <span>Tgl: {dateFormatted}, {timeFormatted}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span>Kasir: {data.kasirNama || "Kasir"}</span>
+                  </div>
                   <div className="flex justify-between font-semibold">
                     <span>Pelanggan: {data.namaPelanggan || (data.member ? data.member.nama : "Umum")}</span>
                   </div>
@@ -303,6 +307,9 @@ export function ReceiptModal({
                   </div>
                   <div className="flex justify-between">
                     <span>Tgl: {dateFormatted}, {timeFormatted}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Kasir: {data.kasirNama || "Kasir"}</span>
                   </div>
                   {(data.namaPelanggan || data.member) && (
                     <div className="flex justify-between font-semibold">

@@ -92,6 +92,9 @@
   - **Jarak Standar Lebih Lega & Mudah Dibaca:** Mengubah default margin antar item dari 4px menjadi 7px dengan padding dan line-height proporsional sehingga struk belanja tidak lagi berdempetan.
   - **Opsi Pengaturan 3 Tingkat:** Pilihan spasi `compact` (Rapat/Hemat Kertas), `normal` (Sedang/Rekomendasi - berjarak bersih), dan `loose` (Lega - berjarak jauh dengan garis pemisah putus-putus) yang tersinkronisasi di Database Supabase & LocalStorage per perangkat.
   - **Dukungan Multi-Engine:** Diterapkan pada thermal printer iframe, Direct ESC/POS Bluetooth, modal dialog pratinjau struk kasir (`receipt-modal.tsx`), serta live preview di halaman `/dashboard/pengaturan`.
+- [x] **Identitas Nama Kasir pada Struk Transaksi & Kasbon:**
+  - **Pencatatan Otomatis:** Sistem mendeteksi user aktif yang login (Owner atau Kasir) dan otomatis mencantumkan nama kasir pada transaksi baru serta pembayaran kasbon.
+  - **Tampilan Struk Multi-Media:** Baris `Kasir: [Nama Kasir]` tercetak jelas pada thermal iframe printer, Direct ESC/POS Bluetooth (`Ksr:`), cetak ulang struk di Riwayat Transaksi, dan modal dialog struk belanja.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
 
 ---

@@ -170,6 +170,7 @@ export function RiwayatTable({
       alasanBatal: tx.alasanBatal,
       date: tx.createdAt,
       member: tx.member ? { nama: tx.member.nama, kode: tx.member.kode } : null,
+      kasirNama: tx.user?.nama || tx.user?.username || "Kasir",
       items: tx.items.map((item: any) => ({
         nama: item.barang?.nama || "Produk",
         unitName: item.varian?.unit?.name || "Pcs",

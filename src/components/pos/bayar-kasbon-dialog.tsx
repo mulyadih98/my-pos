@@ -120,6 +120,7 @@ export function BayarKasbonDialog({
           namaPelanggan: res.data.namaPelanggan,
           saldoHutangSebelum: res.data.saldoSebelum,
           saldoHutangAkhir: res.data.saldoSesudah,
+          kasirNama: res.data.kasirNama || "Kasir",
           items: [],
         };
 

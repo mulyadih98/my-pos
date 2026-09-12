@@ -257,7 +257,12 @@ export async function createTransaksi(payload: {
     revalidatePath("/dashboard");
   } catch {}
 
-  return { success: true, invoice, kasbonInfo: finalKasbonInfo };
+  return {
+    success: true,
+    invoice,
+    kasbonInfo: finalKasbonInfo,
+    kasirNama: currentUser?.nama || currentUser?.username || "Kasir",
+  };
 }
 
 /**

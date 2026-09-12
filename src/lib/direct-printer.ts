@@ -213,6 +213,7 @@ function buildEscPosReceipt(data: PrintableReceiptData, settings: StoreSettings)
     addText(`No : ${data.invoice}\n`);
     const d = typeof data.date === "string" ? new Date(data.date) : data.date;
     addText(`Tgl: ${d.toLocaleDateString("id-ID")}, ${d.toLocaleTimeString("id-ID")}\n`);
+    addText(`Ksr: ${data.kasirNama || "Kasir"}\n`);
     addText(`Plg: ${data.namaPelanggan || (data.member ? data.member.nama : "Umum")}\n`);
     addText(divider);
 
@@ -247,6 +248,7 @@ function buildEscPosReceipt(data: PrintableReceiptData, settings: StoreSettings)
     addText(`No : ${data.invoice}\n`);
     const d = typeof data.date === "string" ? new Date(data.date) : data.date;
     addText(`Tgl: ${d.toLocaleDateString("id-ID")}, ${d.toLocaleTimeString("id-ID")}\n`);
+    addText(`Ksr: ${data.kasirNama || "Kasir"}\n`);
     if (data.namaPelanggan || data.member) {
       addText(`Plg: ${data.namaPelanggan || (data.member ? `${data.member.nama} (${data.member.kode})` : "Umum")}\n`);
     }

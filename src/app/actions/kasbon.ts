@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth";
 
 export interface KasbonFilter {
   search?: string;
@@ -198,6 +199,7 @@ export async function bayarKasbonLangsung(payload: {
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
   const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
   const noPembayaran = `KSB-${dateStr}-${randomStr}`;
+  const currentUser = await getCurrentUser();
 
   const result = await db.$transaction(async (tx) => {
     const kasbon = await tx.bukuKasbon.findUnique({
@@ -252,6 +254,7 @@ export async function bayarKasbonLangsung(payload: {
       saldoSebelum,
       saldoSesudah,
       noPembayaran,
+      kasirNama: currentUser?.nama || currentUser?.username || "Kasir",
     };
   });
 
