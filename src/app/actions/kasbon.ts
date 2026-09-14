@@ -143,20 +143,27 @@ export async function getKartuKasbon(kasbonId: string) {
 }
 
 /**
- * Pencarian cepat akun kasbon aktif untuk autocomplete kasir POS
+ * Pencarian cepat akun kasbon untuk autocomplete kasir POS
+ * Mendukung pencarian case-insensitive dan opsi pelanggan lunas/aktif
  */
-export async function searchKasbonForPOS(query?: string) {
-  const whereClause: any = {
-    saldoHutang: { gt: 0 },
-  };
+export async function searchKasbonForPOS(
+  query?: string,
+  options?: { onlyWithDebt?: boolean }
+) {
+  const onlyWithDebt = options?.onlyWithDebt ?? true;
+  const whereClause: any = {};
+
+  if (onlyWithDebt) {
+    whereClause.saldoHutang = { gt: 0 };
+  }
 
   if (query && query.trim().length > 0) {
     const q = query.trim();
     whereClause.OR = [
-      { namaPelanggan: { contains: q } },
-      { telepon: { contains: q } },
-      { member: { nama: { contains: q } } },
-      { member: { kode: { contains: q } } },
+      { namaPelanggan: { contains: q, mode: "insensitive" } },
+      { telepon: { contains: q, mode: "insensitive" } },
+      { member: { nama: { contains: q, mode: "insensitive" } } },
+      { member: { kode: { contains: q, mode: "insensitive" } } },
     ];
   }
 
@@ -165,9 +172,10 @@ export async function searchKasbonForPOS(query?: string) {
     include: {
       member: true,
     },
-    orderBy: {
-      updatedAt: "desc",
-    },
+    orderBy: [
+      { saldoHutang: "desc" },
+      { updatedAt: "desc" },
+    ],
     take: 10,
   });
 }

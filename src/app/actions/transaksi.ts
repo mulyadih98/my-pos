@@ -48,6 +48,7 @@ export async function createTransaksi(payload: {
   memberId?: string;
 
   // Integrasi Kasbon / Hutang
+  kasbonId?: string;
   kasbonNamaPelanggan?: string;
   kasbonTelepon?: string;
   kasbonJatuhTempo?: string | null;
@@ -66,6 +67,7 @@ export async function createTransaksi(payload: {
     catatan,
     items,
     memberId,
+    kasbonId,
     kasbonNamaPelanggan,
     kasbonTelepon,
     kasbonJatuhTempo,
@@ -114,11 +116,18 @@ export async function createTransaksi(payload: {
       }
 
       // Cari atau buat akun BukuKasbon pelanggan
-      let kasbon = await tx.bukuKasbon.findFirst({
-        where: memberId
-          ? { memberId }
-          : { namaPelanggan: namaCustomer },
-      });
+      let kasbon = null;
+      if (kasbonId) {
+        kasbon = await tx.bukuKasbon.findUnique({ where: { id: kasbonId } });
+      }
+
+      if (!kasbon) {
+        kasbon = await tx.bukuKasbon.findFirst({
+          where: memberId
+            ? { memberId }
+            : { namaPelanggan: { equals: namaCustomer, mode: "insensitive" } },
+        });
+      }
 
       const parsedJatuhTempo = kasbonJatuhTempo ? new Date(kasbonJatuhTempo) : null;
 

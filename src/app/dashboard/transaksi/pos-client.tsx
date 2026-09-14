@@ -47,6 +47,8 @@ import {
   BookOpenCheck,
   Calendar,
   AlertTriangle,
+  CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -181,6 +183,11 @@ export function POSClient({
   const [kasbonDp, setKasbonDp] = useState<number>(0);
   const [kasbonJatuhTempo, setKasbonJatuhTempo] = useState<string>("");
   const [customerKasbon, setCustomerKasbon] = useState<any | null>(null);
+  const [selectedKasbonId, setSelectedKasbonId] = useState<string | null>(null);
+  const [kasbonSuggestions, setKasbonSuggestions] = useState<any[]>([]);
+  const [isKasbonSuggestionsOpen, setIsKasbonSuggestionsOpen] = useState<boolean>(false);
+  const [isLoadingKasbonSuggestions, setIsLoadingKasbonSuggestions] = useState<boolean>(false);
+  const kasbonInputWrapperRef = useRef<HTMLDivElement>(null);
   const [isPotongKembalian, setIsPotongKembalian] = useState<boolean>(false);
   const [potongKembalianJumlah, setPotongKembalianJumlah] = useState<number>(0);
 
@@ -229,11 +236,11 @@ export function POSClient({
       return;
     }
     try {
-      const list = await searchKasbonForPOS(nama.trim());
+      const list = await searchKasbonForPOS(nama.trim(), { onlyWithDebt: false });
       const matched = list.find(
         (k: any) => k.namaPelanggan.toLowerCase() === nama.trim().toLowerCase()
       );
-      if (matched && matched.saldoHutang > 0) {
+      if (matched) {
         setCustomerKasbon(matched);
       } else {
         setCustomerKasbon(null);
@@ -242,6 +249,33 @@ export function POSClient({
       setCustomerKasbon(null);
     }
   };
+
+  // Fetch saran pelanggan kasbon dari database untuk autocomplete
+  const fetchKasbonSuggestions = useCallback(async (query: string) => {
+    setIsLoadingKasbonSuggestions(true);
+    try {
+      const list = await searchKasbonForPOS(query.trim(), { onlyWithDebt: false });
+      setKasbonSuggestions(list);
+    } catch {
+      setKasbonSuggestions([]);
+    } finally {
+      setIsLoadingKasbonSuggestions(false);
+    }
+  }, []);
+
+  // Tutup dropdown saran kasbon jika pengguna mengklik di luar area input
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        kasbonInputWrapperRef.current &&
+        !kasbonInputWrapperRef.current.contains(e.target as Node)
+      ) {
+        setIsKasbonSuggestionsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Auto-scroll selected item into view when navigating with Arrow Up / Down
   useEffect(() => {
@@ -732,6 +766,7 @@ export function POSClient({
         })),
 
         // Integrasi Kasbon
+        kasbonId: selectedKasbonId || customerKasbon?.id || undefined,
         kasbonNamaPelanggan: (member?.nama || kasbonNama || "").trim() || undefined,
         kasbonTelepon: kasbonTelepon.trim() || undefined,
         kasbonJatuhTempo: kasbonJatuhTempo || null,
@@ -809,6 +844,8 @@ export function POSClient({
       setKasbonNama("");
       setKasbonTelepon("");
       setKasbonJatuhTempo("");
+      setSelectedKasbonId(null);
+      setIsKasbonSuggestionsOpen(false);
       setIsPotongKembalian(false);
       setPotongKembalianJumlah(0);
       setCustomerKasbon(null);
@@ -837,6 +874,7 @@ export function POSClient({
     kasbonTelepon,
     kasbonDp,
     kasbonJatuhTempo,
+    selectedKasbonId,
     isPotongKembalian,
     effectivePotongKembalian,
     customerKasbon,
@@ -1204,6 +1242,8 @@ export function POSClient({
       setMemberSearch("");
       setKasbonNama(found.nama);
       setKasbonTelepon(found.telepon || "");
+      setSelectedKasbonId(null);
+      setIsKasbonSuggestionsOpen(false);
       checkKasbonForCustomer(found.nama);
       playScanBeep();
       toast.success(`Member ditemukan: ${found.nama}`);
@@ -1220,6 +1260,8 @@ export function POSClient({
     setCustomerKasbon(null);
     setKasbonNama("");
     setKasbonTelepon("");
+    setSelectedKasbonId(null);
+    setIsKasbonSuggestionsOpen(false);
     setIsPotongKembalian(false);
     setPotongKembalianJumlah(0);
     toast.info("Member dihapus, beralih ke harga retail");
@@ -1752,6 +1794,8 @@ export function POSClient({
                         setMemberSearch("");
                         setKasbonNama(m.nama);
                         setKasbonTelepon(m.telepon || "");
+                        setSelectedKasbonId(null);
+                        setIsKasbonSuggestionsOpen(false);
                         checkKasbonForCustomer(m.nama);
                         playScanBeep();
                         toast.success(`Member terpilih: ${m.nama}`);
@@ -1931,6 +1975,9 @@ export function POSClient({
                           setBayar(total);
                         } else if (method === "HUTANG") {
                           setBayar(0);
+                          if (!member) {
+                            fetchKasbonSuggestions(kasbonNama);
+                          }
                         }
                       }}
                       className={`py-1.5 px-0.5 text-center rounded-lg font-bold text-[10.5px] transition-all flex flex-col items-center justify-center gap-1 ${
@@ -1961,21 +2008,186 @@ export function POSClient({
                   <span className="text-[10px] text-muted-foreground">Member / Non-Member</span>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-foreground flex items-center justify-between">
-                    <span>Nama Pelanggan <span className="text-destructive">*</span></span>
-                    {member && <span className="text-[10px] text-primary font-normal">Dari Member: {member.nama}</span>}
-                  </label>
-                  <Input
-                    placeholder="Ketik nama peminjam (Contoh: Pak Budi RT 02)..."
-                    value={member?.nama || kasbonNama}
-                    onChange={(e) => {
-                      setKasbonNama(e.target.value);
-                      checkKasbonForCustomer(e.target.value);
-                    }}
-                    className="h-9 text-xs bg-background"
-                    disabled={Boolean(member)}
-                  />
+                <div className="space-y-1.5 relative" ref={kasbonInputWrapperRef}>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                      <span>Nama Pelanggan</span>
+                      <span className="text-destructive">*</span>
+                    </label>
+                    {member ? (
+                      <span className="text-[10px] text-primary font-normal">
+                        Dari Member: {member.nama}
+                      </span>
+                    ) : selectedKasbonId ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedKasbonId(null);
+                          setKasbonNama("");
+                          setCustomerKasbon(null);
+                          setKasbonTelepon("");
+                          setIsKasbonSuggestionsOpen(true);
+                          fetchKasbonSuggestions("");
+                        }}
+                        className="text-[10px] text-primary hover:underline font-semibold"
+                      >
+                        Ganti Pelanggan
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">
+                        Ketik untuk cari di database
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <Input
+                      placeholder="Ketik nama pelanggan (Contoh: Pak Budi RT 02)..."
+                      value={member?.nama || kasbonNama}
+                      onFocus={() => {
+                        if (!member) {
+                          setIsKasbonSuggestionsOpen(true);
+                          fetchKasbonSuggestions(kasbonNama);
+                        }
+                      }}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setKasbonNama(val);
+                        setSelectedKasbonId(null);
+                        setIsKasbonSuggestionsOpen(true);
+                        fetchKasbonSuggestions(val);
+                        checkKasbonForCustomer(val);
+                      }}
+                      className={`h-9 text-xs bg-background pr-8 ${
+                        selectedKasbonId
+                          ? "border-emerald-500 bg-emerald-500/5 font-semibold text-foreground"
+                          : ""
+                      }`}
+                      disabled={Boolean(member)}
+                    />
+
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-muted-foreground pointer-events-none">
+                      {isLoadingKasbonSuggestions ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />
+                      ) : selectedKasbonId ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Search className="w-3.5 h-3.5 opacity-40" />
+                      )}
+                    </div>
+
+                    {/* Floating Autocomplete Dropdown Pelanggan Kasbon */}
+                    {!member && isKasbonSuggestionsOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-popover text-popover-foreground border rounded-xl shadow-xl overflow-hidden max-h-56 overflow-y-auto">
+                        <div className="p-2 bg-muted/60 border-b flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          <span>Pelanggan Kasbon Terdaftar</span>
+                          {kasbonSuggestions.length > 0 && (
+                            <span>{kasbonSuggestions.length} ditemukan</span>
+                          )}
+                        </div>
+
+                        {kasbonSuggestions.length > 0 ? (
+                          <div className="divide-y divide-border">
+                            {kasbonSuggestions.map((item: any) => {
+                              const isSelected = selectedKasbonId === item.id;
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedKasbonId(item.id);
+                                    setKasbonNama(item.namaPelanggan);
+                                    if (item.telepon && !kasbonTelepon) {
+                                      setKasbonTelepon(item.telepon);
+                                    }
+                                    setCustomerKasbon(item);
+                                    setIsKasbonSuggestionsOpen(false);
+                                  }}
+                                  className={`w-full p-2.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between gap-2 text-xs ${
+                                    isSelected ? "bg-primary/10" : ""
+                                  }`}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-foreground truncate">
+                                        {item.namaPelanggan}
+                                      </span>
+                                      {item.member ? (
+                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-primary/15 text-primary">
+                                          Member
+                                        </span>
+                                      ) : (
+                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-muted text-muted-foreground">
+                                          Non-Member
+                                        </span>
+                                      )}
+                                    </div>
+                                    {item.telepon && (
+                                      <p className="text-[10px] text-muted-foreground truncate mt-0.5 font-mono">
+                                        Telp: {item.telepon}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="text-right shrink-0">
+                                    {item.saldoHutang > 0 ? (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                        Hutang: Rp {item.saldoHutang.toLocaleString("id-ID")}
+                                      </span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold font-mono bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                                        Lunas (Rp 0)
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="p-3 text-center text-xs text-muted-foreground">
+                            {kasbonNama.trim() ? (
+                              <span>
+                                Belum ada pelanggan bernama &quot;<strong>{kasbonNama}</strong>&quot;
+                              </span>
+                            ) : (
+                              <span>Belum ada akun kasbon terdaftar di database</span>
+                            )}
+                          </div>
+                        )}
+
+                        {kasbonNama.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedKasbonId(null);
+                              setIsKasbonSuggestionsOpen(false);
+                            }}
+                            className="w-full p-2.5 text-left bg-muted/40 hover:bg-muted/80 border-t transition-colors text-xs text-primary font-semibold flex items-center gap-1.5"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>
+                              Gunakan &quot;<strong>{kasbonNama.trim()}</strong>&quot; sebagai Pelanggan Baru
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedKasbonId && customerKasbon && (
+                    <div className="flex items-center justify-between text-[11px] px-2.5 py-1 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 rounded-lg border border-emerald-500/20">
+                      <span className="flex items-center gap-1 font-medium truncate">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        Terhubung ke akun: <strong>{customerKasbon.namaPelanggan}</strong>
+                      </span>
+                      <span className="font-mono font-bold shrink-0 ml-1">
+                        {customerKasbon.saldoHutang > 0
+                          ? `Hutang: Rp ${customerKasbon.saldoHutang.toLocaleString("id-ID")}`
+                          : "Saldo: Lunas"}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">

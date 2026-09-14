@@ -124,6 +124,11 @@
   - **Validasi Relasi Aktif Produk:** Mencegah pelanggaran Foreign Key Constraint PostgreSQL saat satuan, kategori, atau supplier dihapus. Sistem mendeteksi barang terkait dan menolak penghapusan dengan notifikasi peringatan jelas.
   - **Penanganan Error Sisi Klien Modern:** Mengganti submit form langsung dengan `useTransition` dan `try...catch` pada `DeleteUnitDialog` dan `DeleteSupplierDialog`, menampilkan notifikasi toast feedback interaktif tanpa pernah memicu unhandled server exception atau crash halaman web.
   - **Pelepasan Relasi Aman (Unlink):** Otomatis melepaskan relasi kategori dan supplier pada barang saat dihapus sehingga barang tidak menjadi yatim atau rusak.
+- [x] **Autocomplete & Pencarian Cepat Kasbon Non-Member (Bebas Typo):**
+  - **Dropdown Saran Database Real-Time:** Saat kasir memilih metode HUTANG atau mengetik di kolom nama pelanggan, sistem secara otomatis menampilkan daftar pelanggan kasbon terdaftar di database lengkap dengan nama, telepon, dan status saldo hutang saat ini.
+  - **Pencarian Case-Insensitive:** Menggunakan mode pencarian PostgreSQL `insensitive` sehingga penulisan huruf besar/kecil (misal: "budi" vs "Budi") tetap menemukan data yang sama.
+  - **Pencegahan Akun Ganda (Direct ID Linking):** Pemilihan pelanggan dari daftar saran langsung mengikat transaksi ke ID Buku Kasbon pelanggan yang tepat (`kasbonId`), serta menyediakan opsi tombol `+ Daftarkan sebagai Pelanggan Baru` jika nama yang diketik memang pelanggan baru.
+  - **Status Terhubung Visual:** Kartu status hijau dengan tombol *Ganti Pelanggan* yang memudahkan kasir memastikan transaksi kasbon tercatat ke pelanggan yang tepat.
 
 ---
 
