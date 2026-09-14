@@ -49,8 +49,8 @@ export function KategoriTable({ data }: { data: any[] }) {
       try {
         await deleteKategori(id);
         toast.success("Kategori berhasil dihapus");
-      } catch (error) {
-        toast.error("Gagal menghapus kategori");
+      } catch (error: any) {
+        toast.error(error.message || "Gagal menghapus kategori");
       }
     }
   };

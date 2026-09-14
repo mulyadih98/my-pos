@@ -3,6 +3,12 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {}
+}
+
 export async function getKategori() {
   return await db.kategori.findMany({
     orderBy: { nama: 'asc' }
@@ -16,8 +22,8 @@ export async function createKategori(nama: string) {
     data: { nama }
   });
 
-  revalidatePath("/dashboard/kategori");
-  revalidatePath("/dashboard/barang");
+  safeRevalidate("/dashboard/kategori");
+  safeRevalidate("/dashboard/barang");
 }
 
 export async function updateKategori(id: string, nama: string) {
@@ -26,13 +32,31 @@ export async function updateKategori(id: string, nama: string) {
     data: { nama }
   });
 
-  revalidatePath("/dashboard/kategori");
+  safeRevalidate("/dashboard/kategori");
 }
 
 export async function deleteKategori(id: string) {
-  await db.kategori.delete({
-    where: { id }
+  if (!id) throw new Error("ID kategori tidak valid");
+
+  const kategori = await db.kategori.findUnique({
+    where: { id },
   });
 
-  revalidatePath("/dashboard/kategori");
+  if (!kategori) {
+    throw new Error("Kategori tidak ditemukan.");
+  }
+
+  // Lepaskan relasi kategori dari barang terlebih dahulu agar barang menjadi tanpa kategori
+  await db.barang.updateMany({
+    where: { kategoriId: id },
+    data: { kategoriId: null },
+  });
+
+  await db.kategori.delete({
+    where: { id },
+  });
+
+  safeRevalidate("/dashboard/kategori");
+  safeRevalidate("/dashboard/barang");
+  return { success: true };
 }

@@ -35,7 +35,7 @@ export const columnsUnit: ColumnDef<Unit>[] = [
       return (
         <div className="flex justify-end w-full gap-2">
           <EditUnitDialog id={data.id} defaultValue={data.name} />
-          <DeleteUnitDialog id={data.id} />
+          <DeleteUnitDialog id={data.id} name={data.name} />
         </div>
       );
     },

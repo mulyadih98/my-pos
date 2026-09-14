@@ -120,6 +120,10 @@
   - **Proteksi & Deteksi Barcode Kembar:** Deteksi duplikasi barcode internal file secara otomatis, penanda badge "Kembar di File", proteksi `skipDuplicates: true` pada tingkat database PostgreSQL, serta pembuatan auto-barcode dengan sequence counter unik untuk menjamin 0% bentrok.
   - **Real-Time Progress UI & Kontrol Impor:** Kartu progress visual dengan progress bar dinamis, metrik langsung (+Baru, Diperbarui, Dilewati, Gagal), dan tombol pembatalan aman (*Hentikan Impor*).
   - **Paginasi & Filter Pratinjau Cepat:** Tab filter (*Semua*, *Siap Diimpor*, *Error*) dan paginasi 50 produk/halaman sehingga berkas besar berisi 4.000+ baris dapat dibuka seketika tanpa lag pada browser.
+- [x] **Proteksi & Penanganan Aman Hapus Master Satuan, Kategori & Supplier:**
+  - **Validasi Relasi Aktif Produk:** Mencegah pelanggaran Foreign Key Constraint PostgreSQL saat satuan, kategori, atau supplier dihapus. Sistem mendeteksi barang terkait dan menolak penghapusan dengan notifikasi peringatan jelas.
+  - **Penanganan Error Sisi Klien Modern:** Mengganti submit form langsung dengan `useTransition` dan `try...catch` pada `DeleteUnitDialog` dan `DeleteSupplierDialog`, menampilkan notifikasi toast feedback interaktif tanpa pernah memicu unhandled server exception atau crash halaman web.
+  - **Pelepasan Relasi Aman (Unlink):** Otomatis melepaskan relasi kategori dan supplier pada barang saat dihapus sehingga barang tidak menjadi yatim atau rusak.
 
 ---
 

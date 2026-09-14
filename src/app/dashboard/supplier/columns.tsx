@@ -40,7 +40,7 @@ export const columnsSupplier: ColumnDef<Supplier>[] = [
       return (
         <div className="flex justify-end gap-2">
           <EditSupplierDialog data={s} />
-          <DeleteSupplierDialog id={s.id} />
+          <DeleteSupplierDialog id={s.id} nama={s.nama} />
         </div>
       );
     },
