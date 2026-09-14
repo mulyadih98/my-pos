@@ -4,36 +4,6 @@ Aplikasi Point of Sale (POS), Manajemen Inventori Barang, dan Pembukuan Keuangan
 
 ---
 
-## ✨ Fitur Unggulan
-
-- ⚡ **Transaksi Kasir Cepat (Keyboard-First / Mouseless):** Dirancang untuk melayani antrean belanja dengan cepat menggunakan shortcut keyboard (`F1` - `F10`, `Alt+1..5`, `Enter`, `Esc`).
-- 📦 **Modal Dialog Satuan & Kuantitas Otomatis:** Saat kasir scan barcode atau menekan Enter pada pencarian barang, muncul pop-up pilihan satuan (*Pcs*, *Pak*, *Dus*) dan input jumlah yang auto-fokus dan tervalidasi stok secara instan.
-- 💳 **Multi-Metode Pembayaran:** Mendukung Tunai (Cash) dengan tombol pecahan uang pas, QRIS, Transfer Bank, Kartu Debit/EDC, dan Kasbon/Hutang.
-- 📒 **Buku Kasbon & Saldo Hutang Pelanggan (Running Balance):** Saldo kasbon bertambah saat belanja kurang bayar dan berkurang saat dicicil/dilunasi. Mendukung potong uang kembalian untuk mencicil hutang dan cetak bukti tanda terima kasbon.
-- 🖨️ **Cetak Struk Thermal Fleksibel:**
-  - **Windows USB / Iframe Driver:** Cetak 1 lembar pas (0mm margin, pure `#000000`, tanpa URL header/footer browser).
-  - **Direct Bluetooth ESC/POS:** Cetak langsung tanpa membuka dialog browser printer.
-  - **Pengaturan Jarak Baris Struk:** Pilihan jarak baris belanja (*Rapat/Hemat*, *Sedang/Rekomendasi*, *Lega/Garis Pemisah*).
-  - **Identitas Kasir:** Nama kasir yang bertugas otomatis tercantum di setiap struk transaksi.
-- 📥 **Import Barang Masal (Excel / CSV):** Unduh template spreadsheet siap pakai dan upload ratusan produk sekaligus dengan opsi pembaruan data duplikat dan supplier opsional.
-- 📷 **Scanner Barcode Kamera HP & Tablet:** Mendukung pemindaian barcode/QR fisik menggunakan kamera smartphone/tablet kasir secara responsif.
-- 📈 **Laporan Laba Rugi Riil & Biaya Operasional:** Menghitung omset, modal pokok barang (HPP), penyesuaian stok opname, dan biaya operasional toko (Listrik, Gaji, Sewa, Kresek, dll) untuk menghasilkan laba bersih riil.
-- 👥 **Hak Akses Pengguna (RBAC):** Pemisahan hak akses akun **Owner** (akses penuh laporan keuangan & master data) dan **Kasir** (operasional penjualan).
-- 📲 **Installable PWA:** Dapat dipasang (*install*) ke Desktop Windows/Mac atau layar utama smartphone Android/iOS.
-
----
-
-## 🔑 Akun & Kredensial Bawaan (Default)
-
-Setelah proses database seeding dijalankan, sistem menyediakan 2 akun bawaan:
-
-| Peran (Role) | Username | Password | Hak Akses |
-|---|---|---|---|
-| **Owner (Pemilik Toko)** | `owner` | `owner123` | Akses penuh: Laba Rugi, HPP/Modal, Biaya Operasional, Pengaturan, User, Void Transaksi. |
-| **Kasir (Operator Toko)** | `kasir` | `kasir123` | Transaksi kasir, riwayat penjualan, pembayaran kasbon pelanggan (HPP & laba bersih disembunyikan). |
-
----
-
 ## 🪟 Panduan Instalasi di Komputer Windows (PC Kasir Toko)
 
 Panduan ini digunakan untuk menjalankan server kasir di komputer/laptop toko (Windows 10 / 11) baik untuk pemakaian mandiri maupun melayani tablet/HP kasir di toko.
