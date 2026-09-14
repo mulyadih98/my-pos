@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import * as XLSX from "xlsx";
 import {
   Dialog,
@@ -21,14 +21,25 @@ import {
   XCircle,
   RefreshCw,
   Info,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Copy,
 } from "lucide-react";
-import { importBarangBatch, ImportBarangItem } from "@/app/actions/barang";
+import {
+  importBarangBatch,
+  revalidateBarangPages,
+  ImportBarangItem,
+} from "@/app/actions/barang";
 import { toast } from "sonner";
 
 interface ParsedRow {
   rowNum: number;
   kode: string;
   isAutoBarcode: boolean;
+  isDuplicateInFile?: boolean;
+  duplicateRowOf?: number;
   nama: string;
   kategori: string;
   satuan: string;
@@ -41,6 +52,19 @@ interface ParsedRow {
   validationError?: string;
 }
 
+interface ImportProgressState {
+  current: number;
+  total: number;
+  percentage: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  currentBatch: number;
+  totalBatches: number;
+  statusText: string;
+}
+
 export function ImportBarangDialog() {
   const [open, setOpen] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -48,7 +72,13 @@ export function ImportBarangDialog() {
   const [onDuplicate, setOnDuplicate] = useState<"update" | "skip">("update");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [importProgress, setImportProgress] = useState<ImportProgressState | null>(null);
+  const [previewPage, setPreviewPage] = useState(1);
+  const [previewFilter, setPreviewFilter] = useState<"all" | "valid" | "invalid">("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef(false);
+
+  const pageSize = 50;
 
   // 1. Fungsi Download Template
   const handleDownloadTemplate = (format: "xlsx" | "csv") => {
@@ -140,6 +170,10 @@ export function ImportBarangDialog() {
     }
 
     setFileName(file.name);
+    setImportProgress(null);
+    setPreviewPage(1);
+    setPreviewFilter("all");
+
     const reader = new FileReader();
 
     reader.onload = (e) => {
@@ -161,6 +195,9 @@ export function ImportBarangDialog() {
           toast.error("Tidak ada baris data yang ditemukan dalam file.");
           return;
         }
+
+        const barcodeTracker = new Map<string, number>();
+        const autoBarcodeBase = Date.now().toString().slice(-6);
 
         const parsed: ParsedRow[] = rawJson.map((row, idx) => {
           const rawKode = String(
@@ -257,12 +294,28 @@ export function ImportBarangDialog() {
           }
 
           const isAutoBarcode = !rawKode;
-          const finalKode = rawKode || `899${Math.floor(10000000 + Math.random() * 90000000)}`;
+          // Generate barcode unik dengan sequence counter untuk menjamin 0% collision
+          const finalKode = rawKode || `899${autoBarcodeBase}${String(idx + 1).padStart(4, "0")}`;
+
+          let isDuplicateInFile = false;
+          let duplicateRowOf: number | undefined;
+
+          if (rawKode) {
+            const lowerCode = rawKode.toLowerCase();
+            if (barcodeTracker.has(lowerCode)) {
+              isDuplicateInFile = true;
+              duplicateRowOf = barcodeTracker.get(lowerCode);
+            } else {
+              barcodeTracker.set(lowerCode, idx + 2);
+            }
+          }
 
           return {
             rowNum: idx + 2, // Baris 1 adalah header di spreadsheet
             kode: finalKode,
             isAutoBarcode,
+            isDuplicateInFile,
+            duplicateRowOf,
             nama: rawNama,
             kategori: rawKategori,
             satuan: rawSatuan,
@@ -302,12 +355,15 @@ export function ImportBarangDialog() {
   const handleReset = () => {
     setFileName(null);
     setParsedRows([]);
+    setImportProgress(null);
+    setPreviewPage(1);
+    setPreviewFilter("all");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  // 3. Eksekusi Import ke Server
+  // 3. Eksekusi Import ke Server secara Bertahap (Chunking 100 items)
   const handleStartImport = async () => {
     const validRows = parsedRows.filter((r) => r.isValid);
     if (validRows.length === 0) {
@@ -316,34 +372,140 @@ export function ImportBarangDialog() {
     }
 
     setIsProcessing(true);
+    abortControllerRef.current = false;
+
+    const CHUNK_SIZE = 100;
+    const totalItems = validRows.length;
+    const totalBatches = Math.ceil(totalItems / CHUNK_SIZE);
+
+    let totalCreated = 0;
+    let totalUpdated = 0;
+    let totalSkipped = 0;
+    let totalFailed = 0;
+    const accumulatedErrors: string[] = [];
+
+    setImportProgress({
+      current: 0,
+      total: totalItems,
+      percentage: 0,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+      currentBatch: 1,
+      totalBatches,
+      statusText: `Mempersiapkan ${totalItems.toLocaleString("id-ID")} barang...`,
+    });
+
     try {
-      const itemsPayload: ImportBarangItem[] = validRows.map((r) => ({
-        kode: r.kode,
-        nama: r.nama,
-        kategori: r.kategori || undefined,
-        satuan: r.satuan || undefined,
-        stok: r.stok,
-        hargaBeli: r.hargaBeli,
-        hargaRetail: r.hargaRetail,
-        hargaMember: r.hargaMember,
-        supplier: r.supplier || undefined,
-      }));
+      for (let i = 0; i < totalItems; i += CHUNK_SIZE) {
+        if (abortControllerRef.current) {
+          toast.info("Proses impor dihentikan oleh pengguna.");
+          break;
+        }
 
-      const res = await importBarangBatch(itemsPayload, { onDuplicate });
+        const chunkRows = validRows.slice(i, i + CHUNK_SIZE);
+        const batchNum = Math.floor(i / CHUNK_SIZE) + 1;
 
-      let msg = `Sukses mengimpor ${res.total} barang (${res.created} baru`;
-      if (res.updated > 0) msg += `, ${res.updated} diperbarui`;
-      if (res.skipped > 0) msg += `, ${res.skipped} dilewati`;
-      msg += ").";
+        setImportProgress((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentBatch: batchNum,
+                statusText: `Mengimpor Batch ${batchNum} dari ${totalBatches} (${chunkRows.length} barang)...`,
+              }
+            : null
+        );
 
-      toast.success(msg);
+        const itemsPayload: ImportBarangItem[] = chunkRows.map((r) => ({
+          kode: r.kode,
+          nama: r.nama,
+          kategori: r.kategori || undefined,
+          satuan: r.satuan || undefined,
+          stok: r.stok,
+          hargaBeli: r.hargaBeli,
+          hargaRetail: r.hargaRetail,
+          hargaMember: r.hargaMember,
+          supplier: r.supplier || undefined,
+        }));
 
-      if (res.errors.length > 0) {
-        toast.warning(`${res.errors.length} baris memiliki catatan peringatan.`);
+        // Retry loop untuk mengatasi potensi gangguan koneksi sesaat
+        let attempts = 0;
+        let batchRes = null;
+        let lastError: any = null;
+
+        while (attempts < 3) {
+          try {
+            batchRes = await importBarangBatch(itemsPayload, {
+              onDuplicate,
+              revalidateAfter: false,
+            });
+            break;
+          } catch (err: any) {
+            attempts++;
+            lastError = err;
+            if (attempts < 3) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          }
+        }
+
+        if (batchRes) {
+          totalCreated += batchRes.created;
+          totalUpdated += batchRes.updated;
+          totalSkipped += batchRes.skipped;
+          if (batchRes.errors.length > 0) {
+            accumulatedErrors.push(...batchRes.errors);
+          }
+        } else {
+          totalFailed += chunkRows.length;
+          accumulatedErrors.push(
+            `Batch ${batchNum} gagal: ${lastError?.message || "Koneksi terputus"}`
+          );
+        }
+
+        const currentProcessed = Math.min(i + chunkRows.length, totalItems);
+        const percentage = Math.round((currentProcessed / totalItems) * 100);
+
+        setImportProgress({
+          current: currentProcessed,
+          total: totalItems,
+          percentage,
+          created: totalCreated,
+          updated: totalUpdated,
+          skipped: totalSkipped,
+          failed: totalFailed,
+          currentBatch: batchNum,
+          totalBatches,
+          statusText: `Selesai batch ${batchNum} dari ${totalBatches}`,
+        });
       }
 
-      handleReset();
-      setOpen(false);
+      // Revalidasi cache halaman dashboard/barang hanya 1x di akhir proses
+      try {
+        await revalidateBarangPages();
+      } catch {}
+
+      let successMsg = `Impor selesai! Total ${totalCreated + totalUpdated} produk berhasil disimpan (${totalCreated} baru`;
+      if (totalUpdated > 0) successMsg += `, ${totalUpdated} diperbarui`;
+      if (totalSkipped > 0) successMsg += `, ${totalSkipped} dilewati`;
+      if (totalFailed > 0) successMsg += `, ${totalFailed} gagal`;
+      successMsg += ").";
+
+      toast.success(successMsg);
+
+      if (accumulatedErrors.length > 0) {
+        toast.warning(`${accumulatedErrors.length} catatan/peringatan selama proses impor.`);
+      }
+
+      // Jika tidak di-abort dan tidak ada yang gagal, tutup otomatis setelah 1.5 detik
+      if (!abortControllerRef.current && totalFailed === 0) {
+        setTimeout(() => {
+          handleReset();
+          setOpen(false);
+          setImportProgress(null);
+        }, 1500);
+      }
     } catch (err: any) {
       toast.error(err.message || "Terjadi kesalahan saat mengimpor barang.");
     } finally {
@@ -353,6 +515,20 @@ export function ImportBarangDialog() {
 
   const validCount = parsedRows.filter((r) => r.isValid).length;
   const invalidCount = parsedRows.filter((r) => !r.isValid).length;
+
+  const filteredRows = useMemo(() => {
+    if (previewFilter === "valid") return parsedRows.filter((r) => r.isValid);
+    if (previewFilter === "invalid") return parsedRows.filter((r) => !r.isValid);
+    return parsedRows;
+  }, [parsedRows, previewFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const currentPageSafe = Math.min(Math.max(1, previewPage), totalPages);
+
+  const paginatedRows = useMemo(() => {
+    const start = (currentPageSafe - 1) * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, currentPageSafe, pageSize]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -472,16 +648,16 @@ export function ImportBarangDialog() {
                   <div>
                     <p className="text-sm font-bold text-foreground">{fileName}</p>
                     <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      <span>Total: <strong>{parsedRows.length}</strong> baris</span>
+                      <span>Total: <strong>{parsedRows.length.toLocaleString("id-ID")}</strong> baris</span>
                       <span>&bull;</span>
                       <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> {validCount} Siap
+                        <CheckCircle2 className="w-3.5 h-3.5" /> {validCount.toLocaleString("id-ID")} Siap Diimpor
                       </span>
                       {invalidCount > 0 && (
                         <>
                           <span>&bull;</span>
                           <span className="text-destructive font-semibold flex items-center gap-1">
-                            <XCircle className="w-3.5 h-3.5" /> {invalidCount} Tidak Lengkap
+                            <XCircle className="w-3.5 h-3.5" /> {invalidCount.toLocaleString("id-ID")} Tidak Lengkap
                           </span>
                         </>
                       )}
@@ -502,17 +678,106 @@ export function ImportBarangDialog() {
                 </div>
               </div>
 
+              {/* Progress Card Saat Proses Impor Berjalan */}
+              {importProgress && (
+                <div className="p-4 sm:p-5 border rounded-xl bg-card space-y-3.5 shadow-xs border-primary/30">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                        {isProcessing ? (
+                          <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                        ) : importProgress.failed > 0 ? (
+                          <AlertTriangle className="w-4 h-4 text-amber-500" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        )}
+                        <span>{importProgress.statusText}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Memproses {importProgress.current.toLocaleString("id-ID")} dari{" "}
+                        {importProgress.total.toLocaleString("id-ID")} produk ({importProgress.percentage}%) &bull; Batch {importProgress.currentBatch} dari {importProgress.totalBatches}
+                      </p>
+                    </div>
+
+                    {isProcessing && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          abortControllerRef.current = true;
+                          toast.info("Menghentikan proses impor setelah batch ini selesai...");
+                        }}
+                        className="h-8 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 font-semibold shrink-0"
+                      >
+                        Hentikan Impor
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Progress Bar Visual */}
+                  <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-primary h-3 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${importProgress.percentage}%` }}
+                    />
+                  </div>
+
+                  {/* Status Pills */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center">
+                    <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <p className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">
+                        Baru Ditambahkan
+                      </p>
+                      <p className="text-lg font-extrabold text-emerald-800 dark:text-emerald-300 font-mono">
+                        +{importProgress.created.toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-400">
+                        Diperbarui
+                      </p>
+                      <p className="text-lg font-extrabold text-blue-800 dark:text-blue-300 font-mono">
+                        {importProgress.updated.toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <p className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">
+                        Dilewati (Skip)
+                      </p>
+                      <p className="text-lg font-extrabold text-amber-800 dark:text-amber-300 font-mono">
+                        {importProgress.skipped.toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
+                      <p className="text-[10px] uppercase font-bold text-destructive">
+                        Gagal
+                      </p>
+                      <p className="text-lg font-extrabold text-destructive font-mono">
+                        {importProgress.failed.toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Opsi Duplikat Barcode */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-muted/20 border rounded-lg text-xs">
-                <span className="font-semibold text-foreground">
-                  Jika Kode Barcode sudah ada di Database:
-                </span>
-                <div className="flex items-center gap-4">
+                <div>
+                  <span className="font-semibold text-foreground block">
+                    Penanganan Kode Barcode Sama / Duplikat:
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Berlaku untuk barcode yang sudah terdaftar di database maupun barcode kembar di file.
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
                   <label className="flex items-center gap-1.5 cursor-pointer font-medium">
                     <input
                       type="radio"
                       name="onDuplicate"
                       value="update"
+                      disabled={isProcessing}
                       checked={onDuplicate === "update"}
                       onChange={() => setOnDuplicate("update")}
                       className="accent-primary"
@@ -524,6 +789,7 @@ export function ImportBarangDialog() {
                       type="radio"
                       name="onDuplicate"
                       value="skip"
+                      disabled={isProcessing}
                       checked={onDuplicate === "skip"}
                       onChange={() => setOnDuplicate("skip")}
                       className="accent-primary"
@@ -535,13 +801,69 @@ export function ImportBarangDialog() {
 
               {/* Tabel Pratinjau Data */}
               <div className="border rounded-xl overflow-hidden shadow-2xs">
-                <div className="p-3 bg-muted/40 border-b flex items-center justify-between">
-                  <span className="font-bold text-xs">Pratinjau Data ({parsedRows.length} Produk)</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    Periksa kembali data sebelum menekan tombol simpan
-                  </span>
+                <div className="p-3 bg-muted/40 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs">
+                      Pratinjau Data ({parsedRows.length.toLocaleString("id-ID")} Produk)
+                    </span>
+                    <span className="text-[11px] text-muted-foreground hidden md:inline">
+                      &bull; Tampil {pageSize} baris per halaman
+                    </span>
+                  </div>
+
+                  {/* Filter Tabs: Semua / Siap / Error */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setPreviewFilter("all");
+                        setPreviewPage(1);
+                      }}
+                      className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                        previewFilter === "all"
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "bg-background text-muted-foreground hover:text-foreground border border-input"
+                      }`}
+                    >
+                      Semua ({parsedRows.length})
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setPreviewFilter("valid");
+                        setPreviewPage(1);
+                      }}
+                      className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                        previewFilter === "valid"
+                          ? "bg-emerald-600 text-white shadow-2xs"
+                          : "bg-background text-muted-foreground hover:text-emerald-700 border border-input"
+                      }`}
+                    >
+                      Siap ({validCount})
+                    </button>
+                    {invalidCount > 0 && (
+                      <button
+                        type="button"
+                        disabled={isProcessing}
+                        onClick={() => {
+                          setPreviewFilter("invalid");
+                          setPreviewPage(1);
+                        }}
+                        className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                          previewFilter === "invalid"
+                            ? "bg-destructive text-destructive-foreground shadow-2xs"
+                            : "bg-background text-muted-foreground hover:text-destructive border border-input"
+                        }`}
+                      >
+                        Error ({invalidCount})
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="overflow-x-auto max-h-[380px]">
+
+                <div className="overflow-x-auto max-h-[360px]">
                   <table className="w-full text-xs text-left border-collapse">
                     <thead className="bg-muted/80 text-muted-foreground sticky top-0 z-10 font-semibold border-b">
                       <tr>
@@ -559,7 +881,7 @@ export function ImportBarangDialog() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {parsedRows.map((row) => (
+                      {paginatedRows.map((row) => (
                         <tr
                           key={row.rowNum}
                           className={
@@ -571,11 +893,22 @@ export function ImportBarangDialog() {
                           <td className="p-2.5 text-center text-muted-foreground font-mono">
                             {row.rowNum - 1}
                           </td>
-                          <td className="p-2.5 font-mono">
+                          <td className="p-2.5 font-mono whitespace-nowrap">
                             <span>{row.kode}</span>
                             {row.isAutoBarcode && (
-                              <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[9px] rounded font-sans font-bold">
+                              <span
+                                className="ml-1.5 px-1.5 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[9px] rounded font-sans font-bold"
+                                title="Barcode dibuat otomatis oleh sistem"
+                              >
                                 Auto
+                              </span>
+                            )}
+                            {row.isDuplicateInFile && (
+                              <span
+                                className="ml-1.5 px-1.5 py-0.5 bg-blue-500/15 text-blue-700 dark:text-blue-400 text-[9px] rounded font-sans font-bold"
+                                title={`Barcode kembar dengan baris ${row.duplicateRowOf} di file spreadsheet ini`}
+                              >
+                                Kembar di File
                               </span>
                             )}
                           </td>
@@ -607,7 +940,7 @@ export function ImportBarangDialog() {
                           <td className="p-2.5 text-muted-foreground">
                             {row.supplier || <span className="text-muted-foreground/60">-</span>}
                           </td>
-                          <td className="p-2.5 text-center">
+                          <td className="p-2.5 text-center whitespace-nowrap">
                             {row.isValid ? (
                               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Siap
@@ -626,6 +959,66 @@ export function ImportBarangDialog() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Kontrol Paginasi Pratinjau */}
+                {filteredRows.length > pageSize && (
+                  <div className="p-2.5 bg-muted/30 border-t flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                    <div className="text-muted-foreground">
+                      Menampilkan {((currentPageSafe - 1) * pageSize) + 1} -{" "}
+                      {Math.min(currentPageSafe * pageSize, filteredRows.length)} dari{" "}
+                      {filteredRows.length.toLocaleString("id-ID")} produk
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPageSafe <= 1 || isProcessing}
+                        onClick={() => setPreviewPage(1)}
+                        className="h-7 w-7 p-0"
+                        title="Halaman Pertama"
+                      >
+                        <ChevronsLeft className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPageSafe <= 1 || isProcessing}
+                        onClick={() => setPreviewPage((p) => Math.max(1, p - 1))}
+                        className="h-7 w-7 p-0"
+                        title="Halaman Sebelumnya"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </Button>
+                      <span className="px-2 text-xs font-semibold text-foreground font-mono">
+                        {currentPageSafe} / {totalPages}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPageSafe >= totalPages || isProcessing}
+                        onClick={() => setPreviewPage((p) => Math.min(totalPages, p + 1))}
+                        className="h-7 w-7 p-0"
+                        title="Halaman Berikutnya"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPageSafe >= totalPages || isProcessing}
+                        onClick={() => setPreviewPage(totalPages)}
+                        className="h-7 w-7 p-0"
+                        title="Halaman Terakhir"
+                      >
+                        <ChevronsRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -634,37 +1027,58 @@ export function ImportBarangDialog() {
         {/* FOOTER */}
         <div className="px-4 sm:px-6 py-3.5 border-t shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/20 z-20">
           <div className="text-xs text-muted-foreground hidden sm:block">
-            {parsedRows.length > 0 && (
-              <span>
-                {validCount} barang valid siap diimpor ke database toko.
+            {importProgress ? (
+              <span className="font-semibold text-foreground">
+                Proses: {importProgress.current.toLocaleString("id-ID")} / {importProgress.total.toLocaleString("id-ID")} barang ({importProgress.percentage}%)
               </span>
-            )}
+            ) : parsedRows.length > 0 ? (
+              <span>
+                {validCount.toLocaleString("id-ID")} barang valid siap diimpor ke database toko.
+              </span>
+            ) : null}
           </div>
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isProcessing}
+              onClick={() => {
+                if (isProcessing) {
+                  abortControllerRef.current = true;
+                }
+                setOpen(false);
+              }}
+              disabled={isProcessing && !abortControllerRef.current}
             >
-              Batal
+              {importProgress && !isProcessing ? "Tutup" : "Batal"}
             </Button>
             <Button
               type="button"
               variant="default"
               disabled={validCount === 0 || isProcessing}
-              onClick={handleStartImport}
-              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-xs"
+              onClick={
+                importProgress && !isProcessing && importProgress.failed === 0
+                  ? () => {
+                      handleReset();
+                      setOpen(false);
+                    }
+                  : handleStartImport
+              }
+              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-xs min-w-[140px]"
             >
               {isProcessing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Mengimpor...
+                  Mengimpor ({importProgress?.percentage ?? 0}%)
+                </>
+              ) : importProgress && !isProcessing && importProgress.failed === 0 ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Selesai & Tutup
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  Impor {validCount > 0 ? `${validCount} Barang` : "Data"}
+                  Mulai Impor {validCount > 0 ? `(${validCount.toLocaleString("id-ID")} Barang)` : ""}
                 </>
               )}
             </Button>

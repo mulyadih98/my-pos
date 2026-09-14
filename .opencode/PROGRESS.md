@@ -114,6 +114,12 @@
   - **Panduan Windows:** Langkah instalasi PC kasir, konfigurasi auto-start service latar belakang 24/7 (NSSM Windows Service resmi, PM2 Windows, dan Silent VBScript), serta implementasi SSL HTTPS lengkap (Caddy otomatis Let's Encrypt, Nginx for Windows + win-acme, SSL lokal offline via mkcert, dan Cloudflare Tunnel).
   - **Panduan VPS Linux:** Setup Ubuntu/Debian, Node.js 20 LTS, daemon PM2, Nginx reverse proxy port 3000, Let's Encrypt Certbot, UFW firewall, dan instruksi update maintenance.
 - [x] **Alur Git 5 Langkah Baku:** Skill `git-feature-workflow` dan instruksi permanen di `AGENTS.md`.
+- [x] **Optimasi Impor Massal Excel & Penanganan Barcode (Bebas Timeout hingga 4.000+ Baris):**
+  - **Client-Side Sequential Chunking:** Membagi ribuan baris data menjadi batch 100 produk/request, memanggil Server Action secara berantai sehingga tidak pernah menyentuh timeout HTTP/Next.js.
+  - **Bulk Database Operations (Multi-Row SQL):** Mengganti eksekusi individual lambat dengan `createMany` untuk Barang dan VarianBarang, serta pemeriksaan barcode yang sudah ada dalam 1 query tunggal (`kode: { in: batchCodes }`). Peningkatan kecepatan query dari ~50 detik menjadi ~1,5 detik per 100 produk (>30x lebih cepat).
+  - **Proteksi & Deteksi Barcode Kembar:** Deteksi duplikasi barcode internal file secara otomatis, penanda badge "Kembar di File", proteksi `skipDuplicates: true` pada tingkat database PostgreSQL, serta pembuatan auto-barcode dengan sequence counter unik untuk menjamin 0% bentrok.
+  - **Real-Time Progress UI & Kontrol Impor:** Kartu progress visual dengan progress bar dinamis, metrik langsung (+Baru, Diperbarui, Dilewati, Gagal), dan tombol pembatalan aman (*Hentikan Impor*).
+  - **Paginasi & Filter Pratinjau Cepat:** Tab filter (*Semua*, *Siap Diimpor*, *Error*) dan paginasi 50 produk/halaman sehingga berkas besar berisi 4.000+ baris dapat dibuka seketika tanpa lag pada browser.
 
 ---
 

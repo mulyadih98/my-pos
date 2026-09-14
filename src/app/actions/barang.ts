@@ -2,6 +2,8 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { generateId } from "@/lib/utils";
+import { Prisma } from "@/generated/prisma/client";
 
 function safeRevalidate(path: string) {
   try {
@@ -261,6 +263,7 @@ export interface ImportBarangItem {
 
 export interface ImportBarangOptions {
   onDuplicate?: "update" | "skip";
+  revalidateAfter?: boolean;
 }
 
 export interface ImportBarangResult {
@@ -271,12 +274,18 @@ export interface ImportBarangResult {
   errors: string[];
 }
 
+export async function revalidateBarangPages() {
+  safeRevalidate("/dashboard/barang");
+  safeRevalidate("/dashboard/transaksi");
+  safeRevalidate("/dashboard");
+}
+
 /**
- * Import data barang masal dari file Excel atau CSV
+ * Import data barang masal dari file Excel atau CSV (Dioptimasi untuk performa tinggi & bebas timeout)
  */
 export async function importBarangBatch(
   items: ImportBarangItem[],
-  options: ImportBarangOptions = { onDuplicate: "update" }
+  options: ImportBarangOptions = { onDuplicate: "update", revalidateAfter: true }
 ): Promise<ImportBarangResult> {
   const result: ImportBarangResult = {
     total: items.length,
@@ -307,12 +316,19 @@ export async function importBarangBatch(
     unitMap.set(u.name.trim().toLowerCase(), u.id);
   }
 
-  // Pastikan ada satuan default "Pcs"
   let defaultUnitId = unitMap.get("pcs");
   if (!defaultUnitId) {
-    const pcs = await db.unit.create({ data: { name: "Pcs" } });
-    defaultUnitId = pcs.id;
-    unitMap.set("pcs", pcs.id);
+    try {
+      const pcs = await db.unit.create({ data: { name: "Pcs" } });
+      defaultUnitId = pcs.id;
+      unitMap.set("pcs", pcs.id);
+    } catch {
+      const pcs = await db.unit.findUnique({ where: { name: "Pcs" } });
+      if (pcs) {
+        defaultUnitId = pcs.id;
+        unitMap.set("pcs", pcs.id);
+      }
+    }
   }
 
   const supplierMap = new Map<string, string>();
@@ -320,164 +336,257 @@ export async function importBarangBatch(
     supplierMap.set(s.nama.trim().toLowerCase(), s.id);
   }
 
-  // 2. Helper untuk mendapatkan atau membuat Kategori
-  async function resolveKategoriId(name?: string): Promise<string | null> {
-    if (!name || !name.trim()) return null;
-    const clean = name.trim();
-    const key = clean.toLowerCase();
-    if (kategoriMap.has(key)) {
-      return kategoriMap.get(key)!;
+  // 2. Pre-register Kategori, Unit, dan Supplier baru yang muncul pada batch ini
+  const newKategoris = new Set<string>();
+  const newUnits = new Set<string>();
+  const newSuppliers = new Set<string>();
+
+  for (const item of items) {
+    if (item.kategori && item.kategori.trim()) {
+      const k = item.kategori.trim();
+      if (!kategoriMap.has(k.toLowerCase())) newKategoris.add(k);
     }
-    const created = await db.kategori.create({ data: { nama: clean } });
-    kategoriMap.set(key, created.id);
-    return created.id;
+    if (item.satuan && item.satuan.trim()) {
+      const u = item.satuan.trim();
+      if (!unitMap.has(u.toLowerCase())) newUnits.add(u);
+    }
+    if (item.supplier && item.supplier.trim()) {
+      const s = item.supplier.trim();
+      if (!supplierMap.has(s.toLowerCase())) newSuppliers.add(s);
+    }
   }
 
-  // 3. Helper untuk mendapatkan atau membuat Satuan (Unit)
-  async function resolveUnitId(name?: string): Promise<string> {
-    if (!name || !name.trim()) return defaultUnitId!;
-    const clean = name.trim();
-    const key = clean.toLowerCase();
-    if (unitMap.has(key)) {
-      return unitMap.get(key)!;
+  for (const name of newKategoris) {
+    try {
+      const created = await db.kategori.create({ data: { nama: name } });
+      kategoriMap.set(name.toLowerCase(), created.id);
+    } catch {
+      const found = await db.kategori.findUnique({ where: { nama: name } });
+      if (found) kategoriMap.set(name.toLowerCase(), found.id);
     }
-    const created = await db.unit.create({ data: { name: clean } });
-    unitMap.set(key, created.id);
-    return created.id;
   }
 
-  // 4. Helper untuk mendapatkan atau membuat Supplier (opsional)
-  async function resolveSupplierId(name?: string): Promise<string | null> {
-    if (!name || !name.trim()) return null;
-    const clean = name.trim();
-    const key = clean.toLowerCase();
-    if (supplierMap.has(key)) {
-      return supplierMap.get(key)!;
+  for (const name of newUnits) {
+    try {
+      const created = await db.unit.create({ data: { name } });
+      unitMap.set(name.toLowerCase(), created.id);
+    } catch {
+      const found = await db.unit.findUnique({ where: { name } });
+      if (found) unitMap.set(name.toLowerCase(), found.id);
     }
-    const created = await db.supplier.create({ data: { nama: clean } });
-    supplierMap.set(key, created.id);
-    return created.id;
   }
 
-  // 5. Proses baris barang secara bertahap (chunking 20 item per batch)
-  const chunkSize = 20;
-  for (let i = 0; i < items.length; i += chunkSize) {
-    const chunk = items.slice(i, i + chunkSize);
+  for (const name of newSuppliers) {
+    try {
+      const created = await db.supplier.create({ data: { nama: name } });
+      supplierMap.set(name.toLowerCase(), created.id);
+    } catch {
+      const found = await db.supplier.findFirst({ where: { nama: name } });
+      if (found) supplierMap.set(name.toLowerCase(), found.id);
+    }
+  }
 
-    for (const item of chunk) {
-      try {
-        const nama = item.nama ? item.nama.trim() : "";
-        if (!nama) {
-          result.errors.push(`Baris lewati: Nama barang kosong.`);
-          result.skipped++;
-          continue;
-        }
+  // 3. Validasi & Penyiapan Data dalam batch (dengan deduplikasi in-batch)
+  type ProcessedItem = {
+    kode: string;
+    nama: string;
+    stok: number;
+    hargaBeli: number;
+    hargaRetail: number;
+    hargaMember: number;
+    kategoriId: string | null;
+    unitId: string;
+    supplierId: string | null;
+  };
 
-        const hargaRetail = Math.max(0, Math.round(Number(item.hargaRetail) || 0));
-        if (hargaRetail <= 0) {
-          result.errors.push(`Baris "${nama}": Harga retail harus lebih dari 0.`);
-          result.skipped++;
-          continue;
-        }
+  const processedItems: ProcessedItem[] = [];
+  const seenCodesInBatch = new Map<string, number>();
 
-        const hargaBeli = Math.max(0, Math.round(Number(item.hargaBeli) || 0));
-        const hargaMember =
-          item.hargaMember !== undefined && item.hargaMember !== null && Number(item.hargaMember) > 0
-            ? Math.round(Number(item.hargaMember))
-            : hargaRetail;
-        const stok = Math.max(0, Math.round(Number(item.stok) || 0));
+  for (const item of items) {
+    const nama = item.nama ? item.nama.trim() : "";
+    if (!nama) {
+      result.errors.push("Baris dilewati: Nama barang kosong.");
+      result.skipped++;
+      continue;
+    }
 
-        // Generate barcode jika kosong
-        let kode = item.kode ? String(item.kode).trim() : "";
-        if (!kode) {
-          const randomPart = Math.floor(10000000 + Math.random() * 90000000);
-          kode = `899${randomPart}`;
-        }
+    const hargaRetail = Math.max(0, Math.round(Number(item.hargaRetail) || 0));
+    if (hargaRetail <= 0) {
+      result.errors.push(`Baris "${nama}": Harga retail harus lebih dari 0.`);
+      result.skipped++;
+      continue;
+    }
 
-        const kategoriId = await resolveKategoriId(item.kategori);
-        const unitId = await resolveUnitId(item.satuan);
-        const supplierId = await resolveSupplierId(item.supplier);
+    const hargaBeli = Math.max(0, Math.round(Number(item.hargaBeli) || 0));
+    const hargaMember =
+      item.hargaMember !== undefined && item.hargaMember !== null && Number(item.hargaMember) > 0
+        ? Math.round(Number(item.hargaMember))
+        : hargaRetail;
+    const stok = Math.max(0, Math.round(Number(item.stok) || 0));
 
-        // Cek apakah barcode sudah ada di database
-        const existing = await db.barang.findUnique({
-          where: { kode },
-          include: { varians: true },
-        });
+    let kode = item.kode ? String(item.kode).trim() : "";
+    if (!kode) {
+      kode = `899${Math.floor(10000000 + Math.random() * 90000000)}`;
+    }
 
-        if (existing) {
-          if (options.onDuplicate === "skip") {
-            result.skipped++;
-            continue;
-          }
+    const kategoriId = item.kategori?.trim()
+      ? kategoriMap.get(item.kategori.trim().toLowerCase()) || null
+      : null;
+    const unitId = item.satuan?.trim()
+      ? unitMap.get(item.satuan.trim().toLowerCase()) || defaultUnitId!
+      : defaultUnitId!;
+    const supplierId = item.supplier?.trim()
+      ? supplierMap.get(item.supplier.trim().toLowerCase()) || null
+      : null;
 
-          // Perbarui data barang dan varian utamanya
-          await db.barang.update({
-            where: { id: existing.id },
-            data: {
-              nama,
-              stok: stok,
-              hargaBeli,
-              kategoriId: kategoriId || existing.kategoriId,
-              supplierId: supplierId !== null ? supplierId : existing.supplierId,
-            },
-          });
+    const pItem: ProcessedItem = {
+      kode,
+      nama,
+      stok,
+      hargaBeli,
+      hargaRetail,
+      hargaMember,
+      kategoriId,
+      unitId,
+      supplierId,
+    };
 
-          if (existing.varians && existing.varians.length > 0) {
-            await db.varianBarang.update({
-              where: { id: existing.varians[0].id },
-              data: {
-                hargaRetail,
-                hargaMember,
-                unitId,
-              },
-            });
-          } else {
-            await db.varianBarang.create({
-              data: {
-                barangId: existing.id,
-                hargaRetail,
-                hargaMember,
-                unitId,
-                konversi: 1,
-              },
-            });
-          }
-
-          result.updated++;
-        } else {
-          // Buat barang baru beserta varian dasarnya
-          const createdBarang = await db.barang.create({
-            data: {
-              kode,
-              nama,
-              stok,
-              hargaBeli,
-              kategoriId,
-              supplierId,
-            },
-          });
-
-          await db.varianBarang.create({
-            data: {
-              barangId: createdBarang.id,
-              hargaRetail,
-              hargaMember,
-              unitId,
-              konversi: 1,
-            },
-          });
-
-          result.created++;
-        }
-      } catch (err: any) {
-        result.errors.push(`Gagal memproses "${item.nama || item.kode}": ${err.message}`);
+    // Cek duplikasi barcode di dalam batch yang sama
+    if (seenCodesInBatch.has(kode)) {
+      if (options.onDuplicate === "skip") {
+        result.skipped++;
+        continue;
+      } else {
+        // Ganti dengan data terbaru dari baris terakhir
+        const prevIdx = seenCodesInBatch.get(kode)!;
+        processedItems[prevIdx] = pItem;
+        continue;
       }
     }
+
+    seenCodesInBatch.set(kode, processedItems.length);
+    processedItems.push(pItem);
   }
 
-  safeRevalidate("/dashboard/barang");
-  safeRevalidate("/dashboard/transaksi");
-  safeRevalidate("/dashboard");
+  if (processedItems.length === 0) {
+    return result;
+  }
+
+  // 4. Periksa data yang sudah ada di database dalam 1 query tunggal
+  const batchCodes = processedItems.map((p) => p.kode);
+  const existingInDb = await db.barang.findMany({
+    where: { kode: { in: batchCodes } },
+    include: { varians: true },
+  });
+
+  const existingMap = new Map<string, (typeof existingInDb)[0]>();
+  for (const b of existingInDb) {
+    existingMap.set(b.kode, b);
+  }
+
+  // 5. Pisahkan antara barang baru (Bulk Insert) dan barang lama (Update / Skip)
+  const toCreateBarang: Prisma.BarangCreateManyInput[] = [];
+  const toCreateVarian: Prisma.VarianBarangCreateManyInput[] = [];
+  const toUpdateList: { item: ProcessedItem; existing: (typeof existingInDb)[0] }[] = [];
+
+  for (const item of processedItems) {
+    const existing = existingMap.get(item.kode);
+
+    if (existing) {
+      if (options.onDuplicate === "skip") {
+        result.skipped++;
+      } else {
+        toUpdateList.push({ item, existing });
+      }
+    } else {
+      const barangId = generateId();
+      const varianId = generateId();
+
+      toCreateBarang.push({
+        id: barangId,
+        kode: item.kode,
+        nama: item.nama,
+        stok: item.stok,
+        hargaBeli: item.hargaBeli,
+        kategoriId: item.kategoriId,
+        supplierId: item.supplierId,
+      });
+
+      toCreateVarian.push({
+        id: varianId,
+        barangId,
+        hargaRetail: item.hargaRetail,
+        hargaMember: item.hargaMember,
+        unitId: item.unitId,
+        konversi: 1,
+      });
+    }
+  }
+
+  // 6. Eksekusi Bulk Insert barang baru (Hanya butuh 2 query SQL untuk semua barang baru)
+  if (toCreateBarang.length > 0) {
+    try {
+      await db.barang.createMany({
+        data: toCreateBarang,
+        skipDuplicates: true,
+      });
+      await db.varianBarang.createMany({
+        data: toCreateVarian,
+        skipDuplicates: true,
+      });
+      result.created += toCreateBarang.length;
+    } catch (err: any) {
+      result.errors.push(`Gagal membuat barang baru secara massal: ${err.message}`);
+    }
+  }
+
+  // 7. Eksekusi Update barang yang sudah ada
+  for (const { item, existing } of toUpdateList) {
+    try {
+      await db.barang.update({
+        where: { id: existing.id },
+        data: {
+          nama: item.nama,
+          stok: item.stok,
+          hargaBeli: item.hargaBeli,
+          kategoriId: item.kategoriId || existing.kategoriId,
+          supplierId: item.supplierId !== null ? item.supplierId : existing.supplierId,
+        },
+      });
+
+      if (existing.varians && existing.varians.length > 0) {
+        await db.varianBarang.update({
+          where: { id: existing.varians[0].id },
+          data: {
+            hargaRetail: item.hargaRetail,
+            hargaMember: item.hargaMember,
+            unitId: item.unitId,
+          },
+        });
+      } else {
+        await db.varianBarang.create({
+          data: {
+            id: generateId(),
+            barangId: existing.id,
+            hargaRetail: item.hargaRetail,
+            hargaMember: item.hargaMember,
+            unitId: item.unitId,
+            konversi: 1,
+          },
+        });
+      }
+
+      result.updated++;
+    } catch (err: any) {
+      result.errors.push(`Gagal memperbarui "${item.nama || item.kode}": ${err.message}`);
+    }
+  }
+
+  if (options.revalidateAfter !== false) {
+    safeRevalidate("/dashboard/barang");
+    safeRevalidate("/dashboard/transaksi");
+    safeRevalidate("/dashboard");
+  }
 
   return result;
 }
