@@ -48,18 +48,20 @@ export async function middleware(req: NextRequest) {
 
   const session = await getSessionFromRequest(req);
 
-  // 1. Jika membuka /login saat SUDAH login -> redirect ke dashboard
+  // 1. Jika membuka /login saat SUDAH login -> redirect ke dashboard / kasir
   if (pathname === "/login") {
     if (session) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      const target = session.role === "KASIR" ? "/dashboard/transaksi" : "/dashboard";
+      return NextResponse.redirect(new URL(target, req.url));
     }
     return NextResponse.next();
   }
 
-  // 2. Jika membuka root "/" -> redirect ke dashboard (akan dicek login di step berikutnya)
+  // 2. Jika membuka root "/" -> redirect ke dashboard / login
   if (pathname === "/") {
     if (session) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      const target = session.role === "KASIR" ? "/dashboard/transaksi" : "/dashboard";
+      return NextResponse.redirect(new URL(target, req.url));
     }
     return NextResponse.redirect(new URL("/login", req.url));
   }

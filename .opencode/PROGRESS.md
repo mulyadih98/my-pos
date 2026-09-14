@@ -129,6 +129,10 @@
   - **Pencarian Case-Insensitive:** Menggunakan mode pencarian PostgreSQL `insensitive` sehingga penulisan huruf besar/kecil (misal: "budi" vs "Budi") tetap menemukan data yang sama.
   - **Pencegahan Akun Ganda (Direct ID Linking):** Pemilihan pelanggan dari daftar saran langsung mengikat transaksi ke ID Buku Kasbon pelanggan yang tepat (`kasbonId`), serta menyediakan opsi tombol `+ Daftarkan sebagai Pelanggan Baru` jika nama yang diketik memang pelanggan baru.
   - **Status Terhubung Visual:** Kartu status hijau dengan tombol *Ganti Pelanggan* yang memudahkan kasir memastikan transaksi kasbon tercatat ke pelanggan yang tepat.
+- [x] **Perbaikan Cookie Login Sesi pada Jaringan HTTP Lokal / LAN PC Kasir:**
+  - **Dynamic Secure Cookie Flag:** Mendeteksi protokol request secara dinamis (`isHttps`). Cookie sesi tidak lagi dipaksa `secure: true` saat diakses melalui koneksi HTTP lokal (seperti `http://localhost:3000`, `http://127.0.0.1:3000`, maupun IP LAN `http://192.168.x.x:3000`), sehingga browser tidak lagi menolak/membuang cookie sesi.
+  - **Full Navigation Login:** Mengganti `router.push()` pada `LoginForm` dengan `window.location.href` untuk memastikan browser langsung memuat layout dashboard secara segar dan bersih dengan membawa cookie sesi yang valid.
+  - **Role-Based Redirect:** Akun Kasir otomatis langsung diarahkan ke layar kasir (`/dashboard/transaksi`), sedangkan Owner diarahkan ke dashboard laporan (`/dashboard`).
 
 ---
 

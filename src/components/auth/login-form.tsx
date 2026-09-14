@@ -14,7 +14,7 @@ import { AppLogo } from "@/components/brand/app-logo";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || "/dashboard";
+  const rawRedirect = searchParams.get("redirect");
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -38,12 +38,21 @@ export function LoginForm() {
 
       if (res.success) {
         toast.success(`Selamat datang kembali, ${res.user.nama}!`);
-        router.push(redirectUrl);
-        router.refresh();
+
+        // Tentukan target redirect yang sesuai:
+        // Kasir langsung diarahkan ke layar POS Kasir (/dashboard/transaksi), Owner ke /dashboard
+        let targetUrl = "/dashboard";
+        if (rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")) {
+          targetUrl = rawRedirect;
+        } else if (res.user.role === "KASIR") {
+          targetUrl = "/dashboard/transaksi";
+        }
+
+        // Gunakan full page navigation agar browser memuat layout dashboard dengan cookie sesi segar
+        window.location.href = targetUrl;
       }
     } catch (err: any) {
       toast.error(err.message || "Gagal melakukan login.");
-    } finally {
       setIsLoading(false);
     }
   };

@@ -7,7 +7,7 @@ import {
   verifyPassword,
   getCurrentUser,
 } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function loginUser(payload: {
@@ -47,10 +47,17 @@ export async function loginUser(payload: {
     telepon: user.telepon,
   });
 
+  const headerList = await headers();
+  const proto = headerList.get("x-forwarded-proto");
+  const referer = headerList.get("referer") || "";
+  // Hanya aktifkan flag Secure jika request benar-benar berasal dari HTTPS (Cloudflare Tunnel, Vercel, Reverse Proxy SSL).
+  // Pada koneksi HTTP lokal (http://localhost, 127.0.0.1, maupun IP LAN 192.168.x.x), secure harus false agar cookie tidak ditolak oleh browser.
+  const isHttps = proto === "https" || referer.startsWith("https://");
+
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, sessionToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
     sameSite: "lax",
     path: "/",
     maxAge: 7 * 24 * 60 * 60, // 7 hari
